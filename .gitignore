@@ -181,6 +181,7 @@ pyrightconfig.json
 *.csv
 *.spm
 *.svg
+*.topostats
 
 # Notebook checkpoints
 notebooks/.ipynb_checkpoints
