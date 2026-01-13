@@ -8,11 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.2.1/introduction/">
+        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.2.1/installation/">
       
       
-      
-        <link rel="next" href="../related_software/">
       
       
         
@@ -23,7 +21,7 @@
     
     
       
-        <title>Introduction - TopoStats</title>
+        <title>Installation - TopoStats</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#introduction" class="md-skip">
+        <a href="#installation" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Introduction
+              Installation
             
           </span>
         </div>
@@ -286,19 +284,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../introduction/" class="md-nav__link">
         
   
   
@@ -314,7 +303,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1560,6 +1548,125 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-conda" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up Conda
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-topostats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing TopoStats
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installing TopoStats">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pypi-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyPI Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installing from GitHub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github-using-pypi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub using PyPI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-the-repository-and-installing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning the Repository and installing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-using-gitkraken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning Using GitKraken
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1578,28 +1685,114 @@
   
 
 
-<h1 id="introduction">Introduction</h1>
-<p>TopoStats is a <a href="https://www.python.org/">Python</a> package that aims to simplify batch processing Atomic
-Force Microscopy (AFM) images.</p>
-<p>Input directories are recursively searched for files of a given type. Each image is then loaded and processed. Multiple
-images can be processed in parallel.</p>
-<p>Once an image has been loaded the specified channel of data extracted along with the pixel to nanometre scaling. This
-data is then aligned and the tilt is removed. Configurable thresholds are then used to generate masks and a second round
-of tilt removal and row alignment is performed.</p>
-<p>Molecules/regions of interest known as Grains are then detected based on user specified thresholds and the detected
-regions are labelled and have preliminary statistics calculated. The labelled regions of each grain then have individual
-statistics calculated capturing the height, volume, radius and the location of the centroid.</p>
-<p>Optionally DNA Tracing is then performed, which traces the backbone of the DNA molecules to calculate further statistics
-such as whether grains are linear or circular, their contour length and end-to-end distances etc.</p>
-<p>The resulting statistics are written to a <a href="data_dictionary">CSV file</a> and optionally plots are then generated from
-various stages of the processing as well as cropped images of each grain. The amount of images produced is also
-configurable.</p>
-<p>An schematic overview of the classes and methods that are run in processing files can be found in the
-<a href="workflows">workflows</a> page along with more detailed information on <a href="installation">installation</a>, <a href="usage">usage</a>,
-<a href="configuration">configuration</a> and <a href="contributing">contributing</a>.</p>
-<p>If you have questions, please post them on the <a href="https://github.com/AFM-SPM/TopoStats/discussions">discussion</a>, if you
-think you've encountered a bug whilst running the code or suggestions for improvements please create an
-<a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a> in the GitHub project page.</p>
+<h1 id="installation">Installation</h1>
+<p><strong>NB</strong> - If you have trouble installing TopoStats please do checkout the
+<a href="https://github.com/AFM-SPM/TopoStats/discussions">discussion</a> for possible solutions. If your problem isn't covered
+then please do not hesitate to ask a question.</p>
+<p>TopoStats is a <a href="https://www.python.org">Python</a> package designed to run at the command line. If you are using Microsoft
+Windows you should use
+<a href="https://learn.microsoft.com/en-us/powershell/scripting/learn/ps101/01-getting-started?view=powershell-7.3">Powershell</a>.
+You may have Python installed on your system but should use a <a href="https://realpython.com/python-virtual-environments-a-primer/">Python Virtual
+Environment</a> such as
+<a href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a> and install and use TopoStats under the Virtual
+Environment. The versions of Python supported are Python &gt;=3.8 and so when creating your virtual environment you should
+specify this <code>3.8</code> as the minimum.</p>
+<h2 id="setting-up-conda">Setting up Conda</h2>
+<p>Once you have downloaded and installed <a href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a> you can create a
+virtual environment for installing TopoStats for installing and running TopoStats. We will call this environment <code>topostats</code>
+(specified with the <code>--name topostats</code> option) and use Python 3.10 (the option <code>python=3.10</code>). After creating it we can,
+as per the instructions printed out, activate the environment.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>conda<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>topostats<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>You are now ready to install TopoStats.</p>
+<p><strong>NB</strong> If you are using an Apple M1 Macbook then you need to install Anaconda &gt;=
+<a href="https://www.anaconda.com/blog/new-release-anaconda-distribution-now-supporting-m1">2022.05</a>.</p>
+<h2 id="installing-topostats">Installing TopoStats</h2>
+<p>There are two options for installing TopoStats depending on your usage</p>
+<ol>
+<li><a href="https://pypi.org/"><strong>Python Package Index</strong></a> - appropriate if you are just using TopoStats and don't need to dig into
+   the code.</li>
+<li>Cloning the GitHub Repository - if you want to look at the code, contribute to it, debug errors or perhaps test a new
+   feature before a release.</li>
+</ol>
+<h3 id="pypi-installation">PyPI Installation</h3>
+<p>After activating your <code>topostats</code> Conda environment you can install TopoStats from PyPI using the following command.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>This will install TopoStats under your virtual environment and the command <code>topostats</code> will be available at the
+command line. It has a number of sub-commands which can be displayed by invoking it without any options. You can upgrade
+<code>topostats</code> by using the <code>--upgrade</code> flag...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>You can always install a specific version from PyPI</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">topostats</span><span class="o">==</span><span class="m">2</span>.0.0
+</span></code></pre></div>
+<p>For more information on using <code>pip</code> to install and manage packages please refer to the <a href="https://pip.pypa.io/en/stable/user_guide/">pip
+documentation</a>.</p>
+<h3 id="installing-from-github">Installing from GitHub</h3>
+<p>You may wish to consider cloning and installing TopoStats from GitHub if...</p>
+<ul>
+<li>You wish to try out new features that have been developed since the last release (if you find problems please create
+  an <a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a>).</li>
+<li>If you have found an issue in a released version and want to see if it has been fixed in the unreleased version.</li>
+<li>If you wish to develop and extend TopoStats with new features yourself.</li>
+</ul>
+<p>There are two options to install from GitHub, which you use will depend on what you want to do.</p>
+<ol>
+<li>Using PyPI to install directly.</li>
+<li>Clone the repository and install from there.</li>
+</ol>
+<p>If all you want to do is use the development version of TopoStats then you can use option 1. If you wish to change the
+underlying code you should use option 2.</p>
+<h4 id="installing-from-github-using-pypi">Installing from GitHub using PyPI</h4>
+<p><a href="https://pypi.org/project/pip/"><code>pip</code></a> supports <a href="https://pip.pypa.io/en/stable/getting-started/#install-a-package-from-github">installing packages from GitHub</a>. To install the <code>main</code> branch of TopoStats use the
+following in your Virtual Environment.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/AFM-SPM/TopoStats.git@main
+</span></code></pre></div>
+<p>You can install any branch on GitHub by modifying the last argument (<code>@main</code>) to the branch you wish to install,
+e.g. <code>@another_branch</code> would install the <code>another_branch</code> (if it existed).</p>
+<h4 id="cloning-the-repository-and-installing">Cloning the Repository and installing</h4>
+<p>If you do not have Git already installed please see <a href="installation#git">Git</a>. If you intend to contribute to the
+development of TopoStats please read through the <a href="contributing">contributing</a> section.</p>
+<p>If you are familiar with the command line then you can clone and install TopoStats with the following <em>after</em> activating
+your virtual environment. By installing in editable mode (with the <code>-e</code> flag) switching branches will make the branch
+available.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>~/where/to/clone
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:AFM-SPM/TopoStats.git
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">cd</span><span class="w"> </span>TopoStats
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</span></code></pre></div>
+<p>If you plan to contribute to development by adding features or address an existing
+<a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a> please refer to the <a href="contributing">contributing</a> section and pay
+particular attention to the section about installing additional dependencies.</p>
+<p>We include <a href="notebooks">notebooks</a> which show how to use different aspects of TopoStats. If you wish to try these out the
+<a href="https://jupyter.org/">Jupyter Noteooks</a> then you can install the dependencies that are required from the cloned
+TopoStats repository using...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[notebooks]&quot;</span>
+</span></code></pre></div>
+<h4 id="cloning-using-gitkraken">Cloning Using GitKraken</h4>
+<p>If you are using GitKraken you can clone the repository by selecting "Clone" and then "GitHub.com" and typing
+<code>TopoStats</code> into the box next to "Repository to Clone" and you should be presented with the option of selecting
+"TopoStats" from the AFM-SPM organisation. Once cloned follow the above instructions to install with <code>pip</code> under your
+virtual environment.</p>
+<h2 id="tests">Tests</h2>
+<p>One of the major changes in the refactoring is the introduction of unit tests. These require certain packages to be
+installed which are not installed to your virtual environment by
+<a href="https://setuptools.pypa.io/en/latest/setuptools.html">setuptools</a> in the above steps. If you are intending to modify or
+contribute to the development of TopoStats or make changes to the code base you will likely want to be able to run
+the tests. Install the necessary dependencies to do so with...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>TopoStats
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>git<span class="w"> </span>checkout<span class="w"> </span>dev
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[tests]&quot;</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>pytest
+</span></code></pre></div>
+<h2 id="git">Git</h2>
+<p><a href="https://git.vc">Git</a> is a version control system for managing software development and is required to be installed on
+your computer in order to clone the TopoStats repository. Instructions on installing Git can be found at <a href="https://github.com/git-guides/install-git">Git Guides -
+install git</a>.</p>
+<p>A nice Graphical User Interface for working with Git is <a href="https://www.gitkraken.com/">GitKraken</a> which includes
+everything you need.</p>
 
 
 

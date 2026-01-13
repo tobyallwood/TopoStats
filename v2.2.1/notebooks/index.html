@@ -8,11 +8,9 @@
       
       
       
-        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.2.1/introduction/">
+        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.2.1/notebooks/">
       
       
-      
-        <link rel="next" href="../related_software/">
       
       
         
@@ -23,7 +21,7 @@
     
     
       
-        <title>Introduction - TopoStats</title>
+        <title>Notebooks - TopoStats</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#introduction" class="md-skip">
+        <a href="#notebooks" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Introduction
+              Notebooks
             
           </span>
         </div>
@@ -286,19 +284,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../introduction/" class="md-nav__link">
         
   
   
@@ -314,7 +303,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1560,6 +1548,36 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-notebooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Notebooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1578,28 +1596,51 @@
   
 
 
-<h1 id="introduction">Introduction</h1>
-<p>TopoStats is a <a href="https://www.python.org/">Python</a> package that aims to simplify batch processing Atomic
-Force Microscopy (AFM) images.</p>
-<p>Input directories are recursively searched for files of a given type. Each image is then loaded and processed. Multiple
-images can be processed in parallel.</p>
-<p>Once an image has been loaded the specified channel of data extracted along with the pixel to nanometre scaling. This
-data is then aligned and the tilt is removed. Configurable thresholds are then used to generate masks and a second round
-of tilt removal and row alignment is performed.</p>
-<p>Molecules/regions of interest known as Grains are then detected based on user specified thresholds and the detected
-regions are labelled and have preliminary statistics calculated. The labelled regions of each grain then have individual
-statistics calculated capturing the height, volume, radius and the location of the centroid.</p>
-<p>Optionally DNA Tracing is then performed, which traces the backbone of the DNA molecules to calculate further statistics
-such as whether grains are linear or circular, their contour length and end-to-end distances etc.</p>
-<p>The resulting statistics are written to a <a href="data_dictionary">CSV file</a> and optionally plots are then generated from
-various stages of the processing as well as cropped images of each grain. The amount of images produced is also
-configurable.</p>
-<p>An schematic overview of the classes and methods that are run in processing files can be found in the
-<a href="workflows">workflows</a> page along with more detailed information on <a href="installation">installation</a>, <a href="usage">usage</a>,
-<a href="configuration">configuration</a> and <a href="contributing">contributing</a>.</p>
-<p>If you have questions, please post them on the <a href="https://github.com/AFM-SPM/TopoStats/discussions">discussion</a>, if you
-think you've encountered a bug whilst running the code or suggestions for improvements please create an
-<a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a> in the GitHub project page.</p>
+<h1 id="notebooks">Notebooks</h1>
+<p>A series of <a href="https://www.jupyter.org">Jupyter Notebooks</a> are provided that demonstrate how to use the TopoStats package
+in a more interactive manner, calling individual steps. This is useful as it allows the user to explore interactively
+and with rapid feedback the parameters that may need adjusting in order to process a batch of scans. The notebooks can
+be found in the <code>notebook/</code> directory after cloning the GitHub repository.</p>
+<table>
+<thead>
+<tr>
+<th>Notebook</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>00-Walkthrough-minicircle.ipynb</code></td>
+<td>Step-by-step walkthrough of processing <code>minicircle.spm</code> from the <code>tests/resources/</code> directory.</td>
+</tr>
+<tr>
+<td><code>01-Walthrhgouh-interactive.ipynb</code></td>
+<td><strong>Work in Progress</strong> As above but uploading a single scan. Will be deployed in Google Colab/Binder for interactive use.</td>
+</tr>
+<tr>
+<td><code>02-Summary-statistics-and-plots.ipynb</code></td>
+<td>Plotting statistics interactively.</td>
+</tr>
+<tr>
+<td><code>03-Plotting-scans.ipynb</code></td>
+<td>Plotting NumPy arrays of scans from different stages of processing.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="installation">Installation</h2>
+<p>To be able to run the Notebooks you need some additional Python packages installed. You will have to clone the
+repository from GitHub (see <a href="installation">installation</a>) and then install the Notebook dependencies
+with the following commands under your Virtual Environment (e.g. Conda)...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>TopoStats
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[notebooks]&quot;</span>
+</span></code></pre></div>
+<h2 id="running-notebooks">Running Notebooks</h2>
+<p>Start a Jupyter server under the Virtual Environment you have installed the dependencies from and a web-browser page
+will open from which you can choose which notebook to launch.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>TopoStats/notebooks
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>jupyter<span class="w"> </span>notebook
+</span></code></pre></div>
+<p>For more on Jupyter Notebooks please refer to the <a href="https://docs.jupyter.org/en/latest/">official documentation</a>.</p>
 
 
 
