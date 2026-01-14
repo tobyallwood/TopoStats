@@ -1568,23 +1568,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="set_cmap">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.theme.Colormap.set_cmap--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -1804,23 +1787,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="set_cmap">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.theme.Colormap.set_cmap--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -2425,7 +2391,7 @@
 
 
 <h3 id="topostats.theme.Colormap.set_cmap" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">set_cmap</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">set_cmap</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 </h3>
 
@@ -2433,9 +2399,37 @@
     <div class="doc doc-contents ">
 
         <p>Set the ColorMap.</p>
-<h5 id="topostats.theme.Colormap.set_cmap--parameters">Parameters</h5>
-<p>name: str
-    Name of colormap</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of colormap</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="mkdocstrings-source">
@@ -2496,11 +2490,7 @@
 
     </div>
 
-</div><p>handler: python
-options:
-docstring_style: numpy
-rendering:
-show_signature_annotations: true</p>
+</div>
 
 
 
