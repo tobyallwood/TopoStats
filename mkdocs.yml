@@ -55,7 +55,7 @@ nav:
       - IO: api/io.md
       - Plotting: api/plotting.md
       - PlottingFuncs: api/plottingfuncs.md
-      - Run Modules: api/run_modules.md
+      - Run TopoStats: api/run_topostats.md
       - Scars: api/scars.md
       - Statistics: api/statistics.md
       - Theme: api/theme.md
@@ -70,7 +70,12 @@ extra:
 plugins:
   - mermaid2
   - search
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+       python:
+         options:
+           docstring_style: numpy
+           show_signature_annotations: true
   - mike:
       version_selector: true
 
