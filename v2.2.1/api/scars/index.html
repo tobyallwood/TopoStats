@@ -1445,34 +1445,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="remove_scars">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.scars.remove_scars--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.scars.remove_scars--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -1677,34 +1649,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="remove_scars">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.scars.remove_scars--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.scars.remove_scars--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -1763,7 +1707,7 @@
 
 
 <h2 id="topostats.scars.remove_scars" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">remove_scars</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">removal_iterations</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">threshold_low</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">threshold_high</span><span class="o">=</span><span class="mf">0.666</span><span class="p">,</span> <span class="n">max_scar_width</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">min_scar_length</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">remove_scars</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">removal_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">threshold_low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">threshold_high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.666</span><span class="p">,</span> <span class="n">max_scar_width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">min_scar_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span></code>
 
 </h2>
 
@@ -1776,33 +1720,165 @@ resulting from random errors in the AFM data collection process and are hard to 
 detects and removes these artefacts by interpolating over them between the pixels above and below them.
 This method takes no parameters as it uses parameters already established as instance variables when the
 class was instantiated.</p>
-<h4 id="topostats.scars.remove_scars--parameters">Parameters</h4>
-<p>img : npt.NDArray
-    A 2-D image to remove scars from.
-filename : str
-    The filename (used for logging outputs only).
-removal_iterations : int
-    The number of times the scar removal should run on the image.
-    Running just once sometimes isn't enough to remove some of the
-    more difficult to remove scars.
-threshold_low : float
-    A value that when multiplied with the standard deviation, acts as a threshold to determine if an increase
-    or decrease in height might constitute the top or bottom of a scar.
-threshold_high : float
-    A floating point value that is used similarly to threshold_low, however sharp inclines or descents
-    that result in values in the mask higher than this threshold are automatically considered scars.
-max_scar_width : int
-    A value that dictates the maximum width that a scar can be. Note that this does not mean horizontal width,
-    rather vertical, this is because we consider scars to be laying flat, horizontally, so their width is
-    vertical and their length is horizontal.
-min_scar_length : int
-    An integer that restricts the algorithm to only mark scars that are as long or longer than this length.
-    This is important for ensuring that noise or legitimate but sharp datapoints do not get detected as scars.
-    Note that length here is horizontal, as scars are thin, horizontal features.</p>
-<h4 id="topostats.scars.remove_scars--returns">Returns</h4>
-<p>self.img
-    The original 2-D image with scars removed, unless the config has run set to False, in which case it
-    will not remove the scars.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>img</code>
+            </td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A 2-D image to remove scars from.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The filename (used for logging outputs only).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>removal_iterations</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The number of times the scar removal should run on the image.
+Running just once sometimes isn't enough to remove some of the
+more difficult to remove scars.</p>
+              </div>
+            </td>
+            <td>
+                  <code>2</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>threshold_low</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A value that when multiplied with the standard deviation, acts as a threshold to determine if an increase
+or decrease in height might constitute the top or bottom of a scar.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.25</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>threshold_high</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A floating point value that is used similarly to threshold_low, however sharp inclines or descents
+that result in values in the mask higher than this threshold are automatically considered scars.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.666</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>max_scar_width</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A value that dictates the maximum width that a scar can be. Note that this does not mean horizontal width,
+rather vertical, this is because we consider scars to be laying flat, horizontally, so their width is
+vertical and their length is horizontal.</p>
+              </div>
+            </td>
+            <td>
+                  <code>4</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>min_scar_length</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An integer that restricts the algorithm to only mark scars that are as long or longer than this length.
+This is important for ensuring that noise or legitimate but sharp datapoints do not get detected as scars.
+Note that length here is horizontal, as scars are thin, horizontal features.</p>
+              </div>
+            </td>
+            <td>
+                  <code>16</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="self.img">img</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The original 2-D image with scars removed, unless the config has run set to False, in which case it
+will not remove the scars.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="mkdocstrings-source">
@@ -1978,11 +2054,7 @@ min_scar_length : int
 
     </div>
 
-</div><p>handler: python
-options:
-docstring_style: numpy
-rendering:
-show_signature_annotations: true</p>
+</div>
 
 
 

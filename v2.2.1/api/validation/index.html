@@ -1583,23 +1583,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="validate_config">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.validation.validate_config--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -1664,23 +1647,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="validate_config">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.validation.validate_config--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
     </ul>
@@ -1739,7 +1705,7 @@
 
 
 <h2 id="topostats.validation.validate_config" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">validate_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">config_type</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">validate_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">config_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 </h2>
 
@@ -1747,13 +1713,69 @@
     <div class="doc doc-contents ">
 
         <p>Validate configuration.</p>
-<h4 id="topostats.validation.validate_config--parameters">Parameters</h4>
-<p>config : dict
-    Config dictionary imported by read_yaml() and parsed through clean_config().
-schema : Schema
-    A schema against which the configuration is to be compared.
-config_type : str
-    Description of of configuration being validated.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>config</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Config dictionary imported by read_yaml() and parsed through clean_config().</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>schema</code>
+            </td>
+            <td>
+                  <code><span title="schema.Schema">Schema</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A schema against which the configuration is to be compared.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>config_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Description of of configuration being validated.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="mkdocstrings-source">
@@ -1811,11 +1833,7 @@ config_type : str
 
     </div>
 
-</div><p>handler: python
-options:
-docstring_style: numpy
-rendering:
-show_signature_annotations: true</p>
+</div>
 
 
 
