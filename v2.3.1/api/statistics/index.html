@@ -1473,34 +1473,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="image_statistics">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.image_statistics--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.image_statistics--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1511,34 +1483,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="roughness_rms">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.roughness_rms--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.roughness_rms--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1716,34 +1660,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="image_statistics">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.image_statistics--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.image_statistics--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1754,34 +1670,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="roughness_rms">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.roughness_rms--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#topostats.statistics.roughness_rms--returns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Returns
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1841,7 +1729,7 @@
 
 
 <h2 id="topostats.statistics.image_statistics" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">image_statistics</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">pixel_to_nm_scaling</span><span class="p">,</span> <span class="n">results_df</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">image_statistics</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pixel_to_nm_scaling</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">results_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span></code>
 
 </h2>
 
@@ -1851,19 +1739,109 @@
         <p>Calculate statistics pertaining to the whole image.</p>
 <p>Calculates the size of the image in pixels and metres, the root-mean-squared roughness and the grains per metre
 squared.</p>
-<h4 id="topostats.statistics.image_statistics--parameters">Parameters</h4>
-<p>image : np.ndarray
-    Numpy 2D image array of the image to calculate stats for.
-filename : str
-    The name of the file being processed.
-pixel_to_nm_scaling : float
-    Float of the scaling factor between pixels and nanometres.
-results_df : pd.DataFrame
-    Pandas DataFrame of statistics pertaining to individual grains including from grainstats and
-    dna tracing.</p>
-<h4 id="topostats.statistics.image_statistics--returns">Returns</h4>
-<p>dict
-    Dictionary of image statistics.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Numpy 2D image array of the image to calculate stats for.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the file being processed.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pixel_to_nm_scaling</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Float of the scaling factor between pixels and nanometres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>results_df</code>
+            </td>
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pandas DataFrame of statistics pertaining to individual grains including from grainstats and
+dna tracing.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary of image statistics.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="mkdocstrings-source">
@@ -2017,7 +1995,7 @@ results_df : pd.DataFrame
 
 
 <h2 id="topostats.statistics.roughness_rms" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">roughness_rms</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">roughness_rms</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
 
 </h2>
 
@@ -2025,12 +2003,60 @@ results_df : pd.DataFrame
     <div class="doc doc-contents ">
 
         <p>Calculate the root-mean-square roughness of a heightmap image.</p>
-<h4 id="topostats.statistics.roughness_rms--parameters">Parameters</h4>
-<p>image : np.ndarray
-    2-D numpy array of heightmap data to calculate roughness.</p>
-<h4 id="topostats.statistics.roughness_rms--returns">Returns</h4>
-<p>float
-    The RMS roughness of the input array.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>2-D numpy array of heightmap data to calculate roughness.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The RMS roughness of the input array.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="mkdocstrings-source">
@@ -2076,11 +2102,7 @@ results_df : pd.DataFrame
 
     </div>
 
-</div><p>handler: python
-options:
-docstring_style: numpy
-rendering:
-show_signature_annotations: true</p>
+</div>
 
 
 
