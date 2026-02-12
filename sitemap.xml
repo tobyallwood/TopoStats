@@ -2,154 +2,170 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/faq/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/glossary/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/introduction/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/related_software/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/disordered_tracing/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/flattening/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/grain_finding/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/grainstats/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/nodestats/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/ordered_tracing/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/splining/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/advanced/thresholding/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/api/array_manipulation/</loc>
+         <lastmod>2026-02-12</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/api/classes/</loc>
+         <lastmod>2026-02-12</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/api/config/</loc>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/entry_point/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/filters/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/grains/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/grainstats/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/io/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/plotting/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/plottingfuncs/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/api/processing/</loc>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/run_modules/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/scars/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/statistics/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/theme/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/thresholds/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/utils/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/api/validation/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/contributing/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/contributing/adding_modules/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/configuration/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/data_dictionary/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/installation/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/matplotlib-style/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/notebooks/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/usage/workflow/</loc>
-         <lastmod>2025-03-11</lastmod>
+         <lastmod>2026-02-12</lastmod>
     </url>
 </urlset>
