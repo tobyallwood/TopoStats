@@ -151,7 +151,7 @@ the first argument and the remaining configuration options. These will typically
 defined your `topostats/processing.py`. As mentioned above keeping configuration names consistent between configuration
 files and functions means [`**kwargs`][python_kwargs] can be used when passing options to functions.
 
-Continuing with our example let's look at the [`topostats.processing.run_filters()`][topostats_entry_point_filters]
+Continuing with our example let's look at the [`topostats.processing.run_filters()`][topostats_entry_point_filter]
 function.
 
 ```python

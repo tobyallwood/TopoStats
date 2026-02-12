@@ -1,30 +1,41 @@
 """Tests of IO."""
 
-import argparse
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import h5py
 import numpy as np
 import pandas as pd
 import pytest
 
+from topostats import grains
+from topostats.classes import (
+    DisorderedTrace,
+    GrainCrop,
+    Node,
+    OrderedTrace,
+    TopoStats,
+)
 from topostats.io import (
     LoadScans,
+    _find_old_bruker_files,
     convert_basename_to_relative_paths,
     dict_almost_equal,
     dict_to_hdf5,
     dict_to_json,
+    dict_to_topostats,
+    extract_height_profiles,
     find_files,
     get_date_time,
     get_out_path,
     get_relative_paths,
     hdf5_to_dict,
+    lists_almost_equal,
     load_array,
     load_pkl,
-    merge_mappings,
     path_to_str,
     read_64d,
     read_char,
@@ -33,10 +44,9 @@ from topostats.io import (
     read_u32i,
     read_yaml,
     save_array,
-    save_folder_grainstats,
+    save_image_grainstats,
     save_pkl,
-    save_topostats_file,
-    write_config_with_comments,
+    write_csv,
     write_yaml,
 )
 from topostats.logs.logs import LOGGER_NAME
@@ -63,36 +73,6 @@ CONFIG = {
 # pylint: disable=too-many-positional-arguments
 
 
-@pytest.mark.parametrize(
-    ("dict1", "dict2", "expected_merged_dict"),
-    [
-        pytest.param(
-            {"a": 1, "b": 2},
-            {"c": 3, "d": 4},
-            {"a": 1, "b": 2, "c": 3, "d": 4},
-            id="two dicts, no common keys",
-        ),
-        pytest.param(
-            {"a": 1, "b": 2},
-            {"b": 3, "c": 4},
-            {"a": 1, "b": 3, "c": 4},
-            id="two dicts, one common key, testing priority of second dict",
-        ),
-        # Nested dictionaries
-        pytest.param(
-            {"a": 1, "b": {"c": 2, "d": 3}},
-            {"b": {"c": 4, "e": 5}},
-            {"a": 1, "b": {"c": 4, "d": 3, "e": 5}},
-            id="nested dictionaries, one common key in nested dict, testing priority of second dict",
-        ),
-    ],
-)
-def test_merge_mappings(dict1: dict, dict2: dict, expected_merged_dict: dict) -> None:
-    """Test merging of mappings."""
-    merged_dict = merge_mappings(dict1, dict2)
-    assert merged_dict == expected_merged_dict
-
-
 def test_get_date_time() -> None:
     """Test the fetching of a formatted date and time string."""
     assert datetime.strptime(get_date_time(), "%Y-%m-%d %H:%M:%S")
@@ -103,59 +83,6 @@ def test_read_yaml() -> None:
     sample_config = read_yaml(RESOURCES / "test.yaml")
 
     assert sample_config == CONFIG
-
-
-@pytest.mark.parametrize(
-    ("filename", "config", "expected_filename"),
-    [
-        ("test_config_with_comments.yaml", None, "test_config_with_comments.yaml"),
-        ("test_config_with_comments", None, "test_config_with_comments.yaml"),
-        (None, "default", "config.yaml"),
-        (None, None, "config.yaml"),
-        # Example of how to test `dna_config.yaml`
-        # (None, "dna", "dna_config.yaml")
-    ],
-)
-def test_write_config_with_comments(tmp_path: Path, filename: str, config: str, expected_filename: str) -> None:
-    """Test writing of config file with comments.
-
-    If and when specific configurations for different sample types are introduced then the parametrisation can be
-    extended to allow these adding their names under "config" and introducing specific parameters that may differe
-    between the configuration files.
-    """
-    # Setup argparse.Namespace with the tests parameters
-    args = argparse.Namespace()
-    args.filename = filename
-    args.output_dir = tmp_path
-    args.config = config
-    args.simple = False
-
-    # Write default config with comments to file
-    write_config_with_comments(args)
-
-    # Read the written config
-    with Path.open(tmp_path / expected_filename, encoding="utf-8") as f:
-        written_config = f.read()
-
-    # Validate that the written config has comments in it
-    assert "Config file generated" in written_config
-    assert "For more information on configuration and how to use it" in written_config
-    # Validate some of the parameters are present
-    assert "loading:" in written_config
-    assert "gaussian_mode: nearest" in written_config
-    assert "style: topostats.mplstyle" in written_config
-    assert "pixel_interpolation: null" in written_config
-
-
-def test_write_config_with_comments_user_warning(tmp_path: Path) -> None:
-    """Tests a user warning is raised if an attempt is made to request a configuration file type that does not exist."""
-    args = argparse.Namespace()
-    args.filename = "config.yaml"
-    args.output_dir = tmp_path
-    args.config = "nonsense"
-
-    with pytest.raises(UserWarning):
-        write_config_with_comments(args)
 
 
 def test_write_yaml(tmp_path: Path) -> None:
@@ -281,11 +208,90 @@ def test_load_array() -> None:
             True,
             id="nan equal",
         ),
+        pytest.param(
+            {"a": [1.01, 2.01]},
+            {"a": [1.0, 2.0]},
+            0.1,
+            True,
+            id="list equal within tolerance",
+        ),
+        pytest.param(
+            {"a": [1.01, 2.01]},
+            {"a": [1.0, 2.0]},
+            0.0001,
+            False,
+            id="list not equal within strict tolerance",
+        ),
+        pytest.param(
+            {"a": 5.0, "b": 10.0},
+            {"a": {"c": 5.0}, "b": 10.0},
+            0.0001,
+            False,
+            id="dict's matching keys are of different types.",
+        ),
     ],
 )
 def test_dict_almost_equal(dict1: dict, dict2: dict, tolerance: float, expected: bool) -> None:
     """Test that two dictionaries are almost equal."""
     assert dict_almost_equal(dict1, dict2, tolerance) == expected
+
+
+@pytest.mark.parametrize(
+    ("list1", "list2", "tolerance", "expected"),
+    [
+        pytest.param(
+            [1.0, 2.0, 3.0],
+            [1.0, 2.0, 3.0],
+            0.00001,
+            True,
+            id="list exactly equal",
+        ),
+        pytest.param(
+            [1.0, 2.0, 3.0],
+            [1.0, 2.0, 4.0],
+            0.00001,
+            False,
+            id="list not equal: value difference",
+        ),
+        pytest.param(
+            [1.0, 2.0, 3.0],
+            [1.0, 2.0],
+            0.00001,
+            False,
+            id="lists not equal: different lengths",
+        ),
+        pytest.param(
+            [1.00001, 2.00002, 3.00005],
+            [1.0, 2.0, 3.0],
+            0.01,
+            True,
+            id="list equal within tolerance",
+        ),
+        pytest.param(
+            [[1, 2], [2, 3]],
+            [[1, 2], [2, 3]],
+            0.00001,
+            True,
+            id="lists equal: nested lists",
+        ),
+        pytest.param(
+            [[1, 2], [2, 3]],
+            [[1, 2, 3], [2, 3]],
+            0.00001,
+            False,
+            id="lists not equal: nested lists",
+        ),
+    ],
+)
+def test_lists_almost_equal(list1: list, list2: list, tolerance: float, expected: bool) -> None:
+    """Test the lists_almost_equal function."""
+    assert lists_almost_equal(list1, list2, tolerance) == expected
+
+
+def test_lists_almost_equal_notimplemented_error() -> None:
+    """Test that lists_almost_equal raises NotImplementedError for illegal types."""
+    with pytest.raises(NotImplementedError):
+        lists_almost_equal([1, 2, {3}], [1, 2, {3}], 0.00001)
 
 
 @pytest.mark.parametrize("non_existant_file", [("does_not_exist.npy"), ("does_not_exist.np"), ("does_not_exist.csv")])
@@ -295,14 +301,60 @@ def test_load_array_file_not_found(non_existant_file: str) -> None:
         assert load_array(non_existant_file)
 
 
-def test_find_files() -> None:
-    """Test finding images."""
-    found_images = find_files(base_dir="tests/", file_ext=".spm")
-
+@pytest.mark.parametrize(
+    ("file_ext", "filenames"),
+    [
+        pytest.param(".spm", ["minicircle.spm", "old_bruker.002", "old_bruker.004", "plasmids.spm"], id="spm"),
+        pytest.param(".asd", ["file.asd", "minicircles.asd"], id="asd"),
+        pytest.param(".gwy", ["file.gwy"], id="gwy"),
+        pytest.param(".ibw", ["minicircle2.ibw"], id="ibw"),
+        pytest.param(".jpk", ["file.jpk"], id="jpk"),
+        pytest.param(".jpk-qi-image", ["file.jpk-qi-image"], id="jpk-qi-image"),
+        pytest.param(".stp", ["file.stp"], id="stp"),
+        pytest.param(".top", ["file.top"], id="top"),
+        pytest.param(
+            ".topostats",
+            [
+                "file.topostats",
+                "minicircle_240.topostats",
+                "minicircle_small.topostats",
+                "notebook3_image.topostats",
+                "post_processing_catenanes.topostats",
+                "post_processing_minicircle.topostats",
+                "post_processing_minicircle_small.topostats",
+                "post_processing_rep_int.topostats",
+                "process_scan_topostats_file_regtest.topostats",
+            ],
+            id="topostats",
+        ),
+    ],
+)
+def test_find_files(file_ext: str, filenames: str | list[str]) -> None:
+    """Test finding images based on file extension."""
+    found_images = find_files(base_dir=RESOURCES, file_ext=file_ext)
     assert isinstance(found_images, list)
-    assert len(found_images) == 1
-    assert isinstance(found_images[0], Path)
-    assert "minicircle.spm" in str(found_images[0])
+    assert len(found_images) == len(filenames)
+    for image in found_images:
+        assert isinstance(image, Path)
+    # Sort expected and found images (converted to str) for comparison
+    found_images = [str(image.name) for image in found_images]
+    found_images.sort()
+    filenames.sort()
+    assert filenames == found_images
+
+
+def test_find_old_bruker_files() -> None:
+    """Test ``_find_old_bruker_files()``."""
+    found_images = _find_old_bruker_files(base_dir=RESOURCES)
+    assert isinstance(found_images, list)
+    assert len(found_images) == 2
+    for image in found_images:
+        assert isinstance(image, Path)
+    found_images = [str(image.name) for image in found_images]
+    found_images.sort()
+    expected = ["old_bruker.002", "old_bruker.004"]
+    expected.sort()
+    assert expected == found_images
 
 
 @pytest.mark.parametrize(
@@ -404,68 +456,68 @@ def test_convert_basename_to_relative_paths():
 @pytest.mark.parametrize(
     ("base_dir", "image_path", "output_dir", "expected"),
     [
-        # Absolute path, nested under base_dir, with file suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("/some/random/path/images/test.spm"),
             Path("output/here"),
-            Path("output/here/images/test/"),
+            Path("output/here/images/test.spm/"),
+            id="Absolute path, nested under base_dir, with file suffix",
         ),
-        # Absolute path, nested under base_dir, with file suffix and multiple periods
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("/some/random/path/images/to.at.spm"),
             Path("output/here"),
-            Path("output/here/images/to.at/"),
+            Path("output/here/images/to.at.spm/"),
+            id="Absolute path, nested under base_dir, with file suffix and multiple periods",
         ),
-        # Absolute path, nested under base_dir, with file suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("/some/random/path/images/today/test.spm"),
             Path("output/here"),
-            Path("output/here/images/today/test/"),
+            Path("output/here/images/today/test.spm/"),
+            id="Absolute path, nested under base_dir, with file suffix",
         ),
-        # Relative path, nested under base_dir, with file_suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("images/test.spm"),
             Path("output/here"),
-            Path("output/here/images/test"),
+            Path("output/here/images/test.spm"),
+            id="Relative path, nested under base_dir, with file_suffix",
         ),
-        # Relative path, nested (two deep) under base_dir, with file_suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("images/today/test.spm"),
             Path("output/here"),
-            Path("output/here/images/today/test"),
+            Path("output/here/images/today/test.spm"),
+            id="Relative path, nested (two deep) under base_dir, with file_suffix",
         ),
-        # Relative path, nested under base_dir, no file suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("images/"),
             Path("output/here"),
             Path("output/here/images/"),
+            id="Relative path, nested under base_dir, no file suffix",
         ),
-        # Absolute path, nested under base_dir, output not nested under base_dir, with file_suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("/some/random/path/images/test.spm"),
             Path("/different/absolute/path"),
-            Path("/different/absolute/path/images/test"),
+            Path("/different/absolute/path/images/test.spm"),
+            id="Absolute path, nested under base_dir, output not nested under base_dir, with file_suffix",
         ),
-        # Absolute path, nested under base_dir, output not nested under base_dir, no file file_suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("/some/random/path/images/"),
             Path("/different/absolute/path"),
             Path("/different/absolute/path/images/"),
+            id="Absolute path, nested under base_dir, output not nested under base_dir, no file file_suffix",
         ),
-        # Relative path, nested under base_dir, output not nested under base_dir, with file_suffix
-        (
+        pytest.param(
             Path("/some/random/path"),
             Path("images/test.spm"),
             Path("/an/absolute/path"),
-            Path("/an/absolute/path/images/test"),
+            Path("/an/absolute/path/images/test.spm"),
+            id="Relative path, nested under base_dir, output not nested under base_dir, with file_suffix",
         ),
     ],
 )
@@ -476,25 +528,16 @@ def test_get_out_path(image_path: Path, base_dir: Path, output_dir: Path, expect
     assert out_path == expected
 
 
-def test_get_out_path_attributeerror() -> None:
-    """Test get_out_path() raises AttribteError when passed a string instead of a Path() for image_path."""
-    with pytest.raises(AttributeError):
-        get_out_path(
-            image_path="images/test.spm",
-            base_dir=Path("/some/random/path"),
-            output_dir=Path("output/here"),
-        )
-
-
-def test_save_folder_grainstats(tmp_path: Path) -> None:
+def test_save_image_grainstats(tmp_path: Path) -> None:
     """Test a folder-wide grainstats file is made."""
     test_df = pd.DataFrame({"dummy1": [1, 2, 3], "dummy2": ["a", "b", "c"]})
     input_path = tmp_path / "minicircle"
     test_df["basename"] = input_path
-    out_path = tmp_path / "subfolder"
+    out_path = tmp_path / "output"
     Path.mkdir(out_path, parents=True)
-    save_folder_grainstats(out_path, input_path, test_df, "grainstats")
-    assert Path(out_path / "processed" / "folder_grainstats.csv").exists()
+    assert out_path.exists()
+    save_image_grainstats(out_path, input_path, test_df, "grainstats")
+    assert Path(out_path / "processed" / "image_grainstats.csv").exists()
 
 
 def test_load_scan_spm(load_scan_spm: LoadScans) -> None:
@@ -504,9 +547,9 @@ def test_load_scan_spm(load_scan_spm: LoadScans) -> None:
     image, px_to_nm_scaling = load_scan_spm.load_spm()
     assert isinstance(image, np.ndarray)
     assert image.shape == (1024, 1024)
-    assert image.sum() == 30695369.188316286
+    assert image.sum() == pytest.approx(30695369.188316286)
     assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 0.4940029296875
+    assert px_to_nm_scaling == pytest.approx(0.4940029296875)
 
 
 def test_load_scan_ibw(load_scan_ibw: LoadScans) -> None:
@@ -516,9 +559,9 @@ def test_load_scan_ibw(load_scan_ibw: LoadScans) -> None:
     image, px_to_nm_scaling = load_scan_ibw.load_ibw()
     assert isinstance(image, np.ndarray)
     assert image.shape == (512, 512)
-    assert image.sum() == -218091520.0
+    assert image.sum() == pytest.approx(-218091520.0)
     assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 1.5625
+    assert px_to_nm_scaling == pytest.approx(1.5625)
 
 
 def test_load_scan_jpk(load_scan_jpk: LoadScans) -> None:
@@ -528,9 +571,21 @@ def test_load_scan_jpk(load_scan_jpk: LoadScans) -> None:
     image, px_to_nm_scaling = load_scan_jpk.load_jpk()
     assert isinstance(image, np.ndarray)
     assert image.shape == (256, 256)
-    assert image.sum() == 286598232.9308627
+    assert image.sum() == pytest.approx(219242202.8256843)
     assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 1.2770176335964876
+    assert px_to_nm_scaling == pytest.approx(1.2770176335964876)
+
+
+def test_load_scan_jpk_qi(load_scan_jpk_qi: LoadScans) -> None:
+    """Test loading of JPK Instruments .jpk-qi-image file."""
+    load_scan_jpk_qi.img_path = load_scan_jpk_qi.img_paths[0]
+    load_scan_jpk_qi.filename = load_scan_jpk_qi.img_paths[0].stem
+    image, px_to_nm_scaling = load_scan_jpk_qi.load_jpk()
+    assert isinstance(image, np.ndarray)
+    assert image.shape == (100, 100)
+    assert image.sum() == pytest.approx(31593146.16051172)
+    assert isinstance(px_to_nm_scaling, float)
+    assert px_to_nm_scaling == pytest.approx(4.999999999999986)
 
 
 def test_load_scan_gwy(load_scan_gwy: LoadScans) -> None:
@@ -540,9 +595,33 @@ def test_load_scan_gwy(load_scan_gwy: LoadScans) -> None:
     image, px_to_nm_scaling = load_scan_gwy.load_gwy()
     assert isinstance(image, np.ndarray)
     assert image.shape == (512, 512)
-    assert image.sum() == 33836850.232917726
+    assert image.sum() == pytest.approx(33836850.232917726)
     assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 0.8468632812499975
+    assert px_to_nm_scaling == pytest.approx(0.8468632812499975)
+
+
+def test_load_scan_stp(load_scan_stp: LoadScans) -> None:
+    """Test loading of a .stp file."""
+    load_scan_stp.img_path = load_scan_stp.img_paths[0]
+    load_scan_stp.filename = load_scan_stp.img_paths[0].stem
+    image, px_to_nm_scaling = load_scan_stp.load_stp()
+    assert isinstance(image, np.ndarray)
+    assert image.shape == (512, 512)
+    assert image.sum() == pytest.approx(-15070620.440757688)
+    assert isinstance(px_to_nm_scaling, float)
+    assert px_to_nm_scaling == pytest.approx(0.9765625)
+
+
+def test_load_scan_top(load_scan_top: LoadScans) -> None:
+    """Test loading of a .top file."""
+    load_scan_top.img_path = load_scan_top.img_paths[0]
+    load_scan_top.filename = load_scan_top.img_paths[0].stem
+    image, px_to_nm_scaling = load_scan_top.load_top()
+    assert isinstance(image, np.ndarray)
+    assert image.shape == (512, 512)
+    assert image.sum() == pytest.approx(6034386.429246264)
+    assert isinstance(px_to_nm_scaling, float)
+    assert px_to_nm_scaling == pytest.approx(0.9765625)
 
 
 @pytest.mark.parametrize(
@@ -552,21 +631,17 @@ def test_load_scan_gwy(load_scan_gwy: LoadScans) -> None:
         pytest.param("file_does_not_exist.gwy", "ZSensor", id="non-existent .gwy"),
         pytest.param(
             "file_does_not_exist.ibw",
-            "HeightTracee",
+            "HeightTrace",
             id="non-existent .ibw",
-            marks=pytest.mark.skip(
-                reason="UnboundLocalError from AFMReader.ibw.ibw_load() if file does not exist means image is None"
-                " and can not be returned."
-            ),
         ),
         pytest.param("file_does_not_exist.jpk", "height_trace", id="non-existent .jpk"),
         pytest.param("file_does_not_exist.spm", "Height", id="non-existent .spm"),
         pytest.param("file_does_not_exist.topostats", "dummy_channel", id="non-existent .topostats"),
     ],
 )
-def test_get_data_file_not_found(non_existent_file: str, channel: str) -> None:
+def test_get_data_file_not_found(non_existent_file: str, channel: str, default_config: dict[str, Any]) -> None:
     """Test file not found exceptions are raised by .load_*() methods called by get_data()."""
-    load_scan = LoadScans([Path(non_existent_file)], channel=channel)
+    load_scan = LoadScans([Path(non_existent_file)], channel=channel, config=default_config)
     with pytest.raises(FileNotFoundError):
         load_scan.get_data()
 
@@ -578,87 +653,37 @@ def test_load_scan_asd(load_scan_asd: LoadScans) -> None:
     frames, px_to_nm_scaling = load_scan_asd.load_asd()
     assert isinstance(frames, np.ndarray)
     assert frames.shape == (197, 200, 200)
-    assert frames.sum() == -1368044348.3393068
+    assert frames.sum() == pytest.approx(-1368044348.3393068)
     assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 2.0
-
-
-def test_load_scan_topostats_all(load_scan_topostats: LoadScans) -> None:
-    """Test loading all data from a .topostats file."""
-    load_scan_topostats.img_path = load_scan_topostats.img_paths[0]
-    load_scan_topostats.filename = load_scan_topostats.img_paths[0].stem
-    data = load_scan_topostats.load_topostats(extract="all")
-    above_grain_mask = data["grain_masks"]["above"]
-    grain_trace_data = data["grain_trace_data"]
-    assert isinstance(data["image"], np.ndarray)
-    assert data["image"].shape == (1024, 1024)
-    assert data["image"].sum() == 184140.8593819073
-    assert isinstance(data["pixel_to_nm_scaling"], float)
-    assert data["pixel_to_nm_scaling"] == 0.4940029296875
-    # Check that the grain mask is loaded correctly
-    assert isinstance(above_grain_mask, np.ndarray)
-    assert above_grain_mask.sum() == 633746
-    assert isinstance(grain_trace_data, dict)
-    assert grain_trace_data.keys() == {"above"}
-
-
-@pytest.mark.parametrize(
-    ("extract", "array_sum"),
-    [
-        pytest.param("raw", 30695369.188316286, id="loading raw data"),
-        pytest.param("filter", 30695369.188316286, id="loading raw data of refiltering"),
-    ],
-)
-def test_load_scan_topostats_components_raw(load_scan_topostats: LoadScans, extract: str, array_sum: float) -> None:
-    """Test loading different components from a .topostats file."""
-    load_scan_topostats.img_path = load_scan_topostats.img_paths[0]
-    load_scan_topostats.filename = load_scan_topostats.img_paths[0].stem
-    image, px_to_nm_scaling = load_scan_topostats.load_topostats(extract)
-    assert isinstance(image, np.ndarray)
-    assert image.shape == (1024, 1024)
-    assert image.sum() == array_sum
-    assert isinstance(px_to_nm_scaling, float)
-    assert px_to_nm_scaling == 0.4940029296875
-
-
-@pytest.mark.parametrize(
-    ("extract", "array_sum"),
-    [
-        pytest.param("grains", 184140.8593819073, id="loading filtered data for grains"),
-        pytest.param("grainstats", 184140.8593819073, id="loading filtered data for grainstats"),
-    ],
-)
-def test_load_scan_topostats_components_flattened(
-    load_scan_topostats: LoadScans, extract: str, array_sum: float
-) -> None:
-    """Test loading different components from a .topostats file."""
-    load_scan_topostats.img_path = load_scan_topostats.img_paths[0]
-    load_scan_topostats.filename = load_scan_topostats.img_paths[0].stem
-    data = load_scan_topostats.load_topostats(extract)
-    assert isinstance(data["image"], np.ndarray)
-    assert data["image"].shape == (1024, 1024)
-    assert data["image"].sum() == array_sum
-    assert isinstance(data["pixel_to_nm_scaling"], float)
-    assert data["pixel_to_nm_scaling"] == 0.4940029296875
+    assert px_to_nm_scaling == pytest.approx(2.0)
 
 
 @pytest.mark.parametrize(
     ("load_scan_object", "length", "image_shape", "image_sum", "filename", "pixel_to_nm_scaling"),
     [
-        pytest.param("load_scan_spm", 1, (1024, 1024), 30695369.188316286, "minicircle", 0.4940029296875, id="spm"),
-        pytest.param("load_scan_ibw", 1, (512, 512), -218091520.0, "minicircle2", 1.5625, id="ibw"),
-        pytest.param("load_scan_jpk", 1, (256, 256), 286598232.9308627, "file", 1.2770176335964876, id="jpk"),
-        pytest.param("load_scan_gwy", 1, (512, 512), 33836850.232917726, "file", 0.8468632812499975, id="gwy"),
+        pytest.param("load_scan_spm", 1, (1024, 1024), 30695369.188316286, "minicircle.spm", 0.4940029296875, id="spm"),
+        pytest.param("load_scan_ibw", 1, (512, 512), -218091520.0, "minicircle2.ibw", 1.5625, id="ibw"),
+        pytest.param("load_scan_jpk", 1, (256, 256), 219242202.8256843, "file.jpk", 1.2770176335964876, id="jpk"),
+        pytest.param("load_scan_gwy", 1, (512, 512), 33836850.232917726, "file.gwy", 0.8468632812499975, id="gwy"),
         pytest.param(
             "load_scan_topostats",
             1,
             (1024, 1024),
             30695369.188316286,
-            "file",
+            "file.topostats",
             0.4940029296875,
             id="topostats",
         ),
-        pytest.param("load_scan_asd", 197, (200, 200), -12843725.967220962, "file_122", 2.0, id="asd"),
+        pytest.param("load_scan_asd", 197, (200, 200), -12843725.967220962, "file.asd_122", 2.0, id="asd"),
+        pytest.param(
+            "load_scan_topostats_240",
+            1,
+            (1024, 1024),
+            30695369.188316286,
+            "minicircle_240.topostats",
+            0.4940029296875,
+            id="topostats (version 2.4.0)",
+        ),
     ],
 )
 def test_load_scan_get_data(
@@ -674,13 +699,18 @@ def test_load_scan_get_data(
     scan = request.getfixturevalue(load_scan_object)
     scan.get_data()
     assert len(scan.img_dict) == length
-    assert isinstance(scan.img_dict[filename]["image_original"], np.ndarray)
-    assert scan.img_dict[filename]["image_original"].shape == image_shape
-    assert scan.img_dict[filename]["image_original"].sum() == image_sum
-    assert isinstance(scan.img_dict[filename]["img_path"], Path)
-    assert scan.img_dict[filename]["img_path"] == RESOURCES / filename
-    assert isinstance(scan.img_dict[filename]["pixel_to_nm_scaling"], float)
-    assert scan.img_dict[filename]["pixel_to_nm_scaling"] == pixel_to_nm_scaling
+    assert isinstance(scan.img_dict[filename].image_original, np.ndarray)
+    assert scan.img_dict[filename].image_original.shape == image_shape
+    assert scan.img_dict[filename].image_original.sum() == image_sum
+    # If we are loading minicircle_240 it has a flattened .image attribute we can check (note it differs from above
+    # disabled test though)
+    if filename == "minicircle_240":
+        assert scan.img_dict[filename].image.shape == image_shape
+        assert scan.img_dict[filename].image.sum() == 184140.85939149323
+    assert isinstance(scan.img_dict[filename].img_path, Path)
+    assert scan.img_dict[filename].img_path == RESOURCES / filename
+    assert isinstance(scan.img_dict[filename].pixel_to_nm_scaling, float)
+    assert scan.img_dict[filename].pixel_to_nm_scaling == pixel_to_nm_scaling
 
 
 @pytest.mark.parametrize(
@@ -795,168 +825,147 @@ def test_dict_to_hdf5_all_together_group_path_non_standard(tmp_path: Path) -> No
         np.testing.assert_array_equal(f["d"]["h"][()], expected["d"]["h"])
 
 
-def test_dict_to_hdf5_int(tmp_path: Path) -> None:
-    """Test saving a dictionary with an integer to HDF5 format."""
-    to_save = {"a": 1, "b": 2}
-    expected = {"a": 1, "b": 2}
-    group_path = "/"
-
-    with h5py.File(tmp_path / "hdf5_file_int.hdf5", "w") as f:
+@pytest.mark.parametrize(
+    ("to_save", "expected", "group_path"),
+    [
+        pytest.param({"a": 1, "b": 2}, {"a": 1, "b": 2}, "/", id="int"),
+        pytest.param({"a": 0.01, "b": 0.02}, {"a": 0.01, "b": 0.02}, "/", id="float"),
+        pytest.param({"a": "test", "b": "test2"}, {"a": "test", "b": "test2"}, "/", id="str"),
+    ],
+)
+def test_dict_to_hdf5(to_save: Any, expected: Any, group_path: str, tmp_path) -> None:
+    """Test for dict_to_hdf5()."""
+    with h5py.File(tmp_path / "hdf5_file.hdf5", "w") as f:
         dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
     # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_int.hdf5", "r") as f:
-        # Check keys are the same
-        assert list(f.keys()) == list(expected.keys())
-        assert f["a"][()] == expected["a"]
-        assert f["b"][()] == expected["b"]
-
-
-def test_dict_to_hdf5_float(tmp_path: Path) -> None:
-    """Test saving a dictionary with a float to HDF5 format."""
-    to_save = {"a": 0.01, "b": 0.02}
-    expected = {"a": 0.01, "b": 0.02}
-    group_path = "/"
-
-    with h5py.File(tmp_path / "hdf5_file_float.hdf5", "w") as f:
-        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
-    # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_float.hdf5", "r") as f:
-        # Check keys are the same
-        assert list(f.keys()) == list(expected.keys())
-        assert f["a"][()] == expected["a"]
-        assert f["b"][()] == expected["b"]
-
-
-def test_dict_to_hdf5_str(tmp_path: Path) -> None:
-    """Test saving a dictionary with a string to HDF5 format."""
-    to_save = {"a": "test", "b": "test2"}
-    expected = {"a": "test", "b": "test2"}
-    group_path = "/"
-
-    with h5py.File(tmp_path / "hdf5_file_str.hdf5", "w") as f:
-        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
-    # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_str.hdf5", "r") as f:
-        # Check keys are the same
-        assert list(f.keys()) == list(expected.keys())
-        # pylint thinks that f["a"] is a group but it is a bytes object that can be decoded
-        # pylint: disable=no-member
-        assert f["a"][()].decode("utf-8") == expected["a"]
-        # pylint thinks that f["b"] is a group but it is a bytes object that can be decoded
-        # pylint: disable=no-member
-        assert f["b"][()].decode("utf-8") == expected["b"]
-
-
-def test_dict_to_hdf5_nested_lists(tmp_path: Path) -> None:
-    """Test saving a nested dictionary with lists to HDF5 format."""
-    to_save = {
-        "list": [1, 2, 3],
-        "2d list": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-    }
-
-    expected = {
-        "list": np.array([1, 2, 3]),
-        "2d list": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-    }
-
-    group_path = "/"
-
-    with h5py.File(tmp_path / "hdf5_file_nested_lists.hdf5", "w") as f:
-        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
-    # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_nested_lists.hdf5", "r") as f:
+    with h5py.File(tmp_path / "hdf5_file.hdf5", "r") as f:
         # Check keys are the same
         assert sorted(f.keys()) == sorted(expected.keys())
-        np.testing.assert_array_equal(f["list"][()], expected["list"])
-        np.testing.assert_array_equal(f["2d list"][()], expected["2d list"])
+        # If we have strings they need decoding
+        if isinstance(expected["a"], str):
+            # pylint thinks that f["a"] is a group but it is a bytes object that can be decoded
+            assert f["a"][()].decode("utf8") == expected["a"]  # pylint: disable=no-member
+            assert f["b"][()].decode("utf8") == expected["b"]  # pylint: disable=no-member
+        else:
+            assert f["a"][()] == expected["a"]
+            assert f["b"][()] == expected["b"]
 
 
-def test_dict_to_hdf5_nested_dict(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("to_save", "expected", "group_path"),
+    [
+        pytest.param(
+            {"a": [1, 2, 3], "b": [4, 5, 6]},
+            {"a": np.array([1, 2, 3]), "b": np.array([4, 5, 6])},
+            "/",
+            id="simple lists",
+        ),
+        pytest.param(
+            {
+                "a": [1, 2, 3],
+                "b": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+            },
+            {
+                "a": np.array([1, 2, 3]),
+                "b": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            },
+            "/",
+            id="nested lists",
+        ),
+    ],
+)
+def test_dict_to_hdf5_arrays(to_save: Any, expected: Any, group_path: str, tmp_path) -> None:
+    """Test for dict_to_hdf5()."""
+    with h5py.File(tmp_path / "hdf5_file.hdf5", "w") as f:
+        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
+    # Load it back in and check if the dictionary is the same
+    with h5py.File(tmp_path / "hdf5_file.hdf5", "r") as f:
+        # Check keys are the same
+        assert sorted(f.keys()) == sorted(expected.keys())
+        np.testing.assert_array_equal(f["a"][()], expected["a"])
+        np.testing.assert_array_equal(f["b"][()], expected["b"])
+
+
+@pytest.mark.parametrize(
+    ("to_save", "expected", "group_path"),
+    [
+        pytest.param(
+            {
+                "a": 1,
+                "b": 2,
+                "c": {"d": 3, "e": 4},
+            },
+            {
+                "a": 1,
+                "b": 2,
+                "c": {"d": 3, "e": 4},
+            },
+            "/",
+            id="nested dictionary (default group_path)",
+        ),
+        pytest.param(
+            {
+                "a": 1,
+                "b": 2,
+                "c": {"d": 3, "e": 4},
+            },
+            {
+                "a": 1,
+                "b": 2,
+                "c": {"d": 3, "e": 4},
+            },
+            "/nested/",
+            id="nested dictionary (nested group_path)",
+        ),
+    ],
+)
+def test_dict_to_hdf5_nested_dict(
+    to_save: dict[str, Any], expected: dict[str, Any], group_path: str, tmp_path: Path
+) -> None:
     """Test saving a nested dictionary to HDF5 format."""
-    to_save = {
-        "a": 1,
-        "b": 2,
-        "c": {"d": 3, "e": 4},
-    }
-
-    expected = {
-        "a": 1,
-        "b": 2,
-        "c": {
-            "d": 3,
-            "e": 4,
-        },
-    }
-
-    group_path = "/"
-
     with h5py.File(tmp_path / "hdf5_file_nested_dict.hdf5", "w") as f:
         dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
 
     # Load it back in and check if the dictionary is the same
     with h5py.File(tmp_path / "hdf5_file_nested_dict.hdf5", "r") as f:
         # Check keys are the same
-        assert sorted(f.keys()) == sorted(expected.keys())
-        assert f["a"][()] == expected["a"]
-        assert f["b"][()] == expected["b"]
-        assert sorted(f["c"].keys()) == sorted(expected["c"].keys())
-        assert f["c"]["d"][()] == expected["c"]["d"]
-        assert f["c"]["e"][()] == expected["c"]["e"]
+        assert sorted(f[group_path].keys()) == sorted(expected.keys())
+        assert f[group_path]["a"][()] == expected["a"]
+        assert f[group_path]["b"][()] == expected["b"]
+        assert sorted(f[group_path]["c"].keys()) == sorted(expected["c"].keys())
+        assert f[group_path]["c"]["d"][()] == expected["c"]["d"]
+        assert f[group_path]["c"]["e"][()] == expected["c"]["e"]
 
 
-def test_dict_to_hdf5_nested_dict_group_path(tmp_path: Path) -> None:
-    """Test saving a nested dictionary to HDF5 format with a non-standard group path."""
-    to_save = {
-        "a": 1,
-        "b": 2,
-        "c": {"d": 3, "e": 4},
-    }
-
+def test_dict_to_hdf5_graincrop(dummy_graincrops_dict: grains.GrainCrop, tmp_path: Path) -> None:
+    """Test loading a GrainGrop object and writing to HDF5 file."""
+    # Make a dictionary from dummy_graincrop
     expected = {
-        "nested": {
-            "a": 1,
-            "b": 2,
-            "c": {
-                "d": 3,
-                "e": 4,
-            },
+        "0": {
+            "image": dummy_graincrops_dict[0].image,
+            "mask": dummy_graincrops_dict[0].mask,
+            "padding": dummy_graincrops_dict[0].padding,
+            "bbox": dummy_graincrops_dict[0].bbox,
+            "pixel_to_nm_scaling": dummy_graincrops_dict[0].pixel_to_nm_scaling,
+            "filename": dummy_graincrops_dict[0].filename,
+            "stats": dummy_graincrops_dict[0].stats,
+            "height_profiles": dummy_graincrops_dict[0].height_profiles,
         }
     }
-
-    group_path = "/nested/"
-
-    with h5py.File(tmp_path / "hdf5_file_nested_dict_group_path.hdf5", "w") as f:
-        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
+    with h5py.File(tmp_path / "hdf5_grain_crop.hdf5", "w") as f:
+        dict_to_hdf5(open_hdf5_file=f, group_path="/", dictionary=dummy_graincrops_dict)
     # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_nested_dict_group_path.hdf5", "r") as f:
-        # Check keys are the same
+    with h5py.File(tmp_path / "hdf5_grain_crop.hdf5", "r") as f:
         assert sorted(f.keys()) == sorted(expected.keys())
-        assert f["nested"]["a"][()] == expected["nested"]["a"]
-        assert f["nested"]["b"][()] == expected["nested"]["b"]
-        assert sorted(f["nested"]["c"].keys()) == sorted(expected["nested"]["c"].keys())
-        assert f["nested"]["c"]["d"][()] == expected["nested"]["c"]["d"]
-        assert f["nested"]["c"]["e"][()] == expected["nested"]["c"]["e"]
-
-
-def test_dict_to_hdf5_list(tmp_path: Path) -> None:
-    """Test saving a dictionary with a list to HDF5 format."""
-    to_save = {"list": [1, 2, 3]}
-    expected = {"list": np.array([1, 2, 3])}
-    group_path = "/"
-
-    with h5py.File(tmp_path / "hdf5_file_list.hdf5", "w") as f:
-        dict_to_hdf5(open_hdf5_file=f, group_path=group_path, dictionary=to_save)
-
-    # Load it back in and check if the dictionary is the same
-    with h5py.File(tmp_path / "hdf5_file_list.hdf5", "r") as f:
-        # Check keys are the same
-        assert sorted(f.keys()) == sorted(expected.keys())
-        np.testing.assert_array_equal(f["list"][()], expected["list"])
+        np.testing.assert_array_equal(f["0"]["image"][()], expected["0"]["image"])
+        np.testing.assert_array_equal(f["0"]["mask"][()], expected["0"]["mask"])
+        assert f["0"]["padding"][()] == expected["0"]["padding"]
+        np.testing.assert_array_equal(f["0"]["bbox"][()], expected["0"]["bbox"])
+        assert f["0"]["pixel_to_nm_scaling"][()] == expected["0"]["pixel_to_nm_scaling"]
+        assert f["0"]["filename"][()].decode("utf-8") == expected["0"]["filename"]  # pylint: disable=no-member
+        for key, value in f["0"]["stats"]["1"]["0"].items():
+            assert value[()] == expected["0"]["stats"][1][0][key]
+        np.testing.assert_array_equal(f["0"]["height_profiles"]["1"]["0"][()], expected["0"]["height_profiles"][1][0])
 
 
 def test_hdf5_to_dict_all_together_group_path_default(tmp_path: Path) -> None:
@@ -1138,217 +1147,6 @@ def test_hdf5_to_dict_nested_dict_group_path(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    (
-        "image",
-        "pixel_to_nm_scaling",
-        "filename",
-        "img_path",
-        "grain_mask_above",
-        "grain_mask_below",
-        "grain_trace_data",
-        "data_keys",
-    ),
-    [
-        pytest.param(
-            np.arange(0, 100).reshape(10, 10),
-            3.14159265,
-            "below_grain_mask_with_grain_trace_data",
-            "./below_grain_mask_with_grain_trace_data.topostats",
-            None,
-            np.zeros((10, 10)),
-            {
-                "above": {
-                    "ordered_traces": {
-                        "0": np.array(
-                            [
-                                [0, 1],
-                                [1, 0],
-                                [2, 2],
-                            ]
-                        ),
-                        "1": np.array(
-                            [
-                                [0, 0],
-                                [2, 1],
-                                [3, 0],
-                            ]
-                        ),
-                    },
-                    "cropped_images": {
-                        "0": np.array([[0, 1, 2], [1, 2, 3], [2, 2, 1]]),
-                        "1": np.array([[0, 1, 3], [2, 2, 4], [3, 4, 5]]),
-                    },
-                    "ordered_trace_heights": {
-                        "0": np.array([5, 2, 3]),
-                        "1": np.array([5, 7, 10]),
-                    },
-                    "ordered_trace_cumulative_distances": {
-                        "0": np.array([0, 1.41, 2.41]),
-                        "1": np.array([0, 1, 2]),
-                    },
-                    "splined_traces": {
-                        "0": np.array(
-                            [
-                                [0, 1],
-                                [1, 0],
-                                [2, 2],
-                            ]
-                        ),
-                        "1": np.array(
-                            [
-                                [0, 0],
-                                [2, 1],
-                                [3, 0],
-                            ]
-                        ),
-                    },
-                },
-                "below": {
-                    "ordered_traces": {
-                        "0": np.array(
-                            [
-                                [0, 1],
-                                [1, 0],
-                                [2, 2],
-                            ]
-                        ),
-                        "1": np.array(
-                            [
-                                [0, 0],
-                                [2, 1],
-                                [3, 0],
-                            ]
-                        ),
-                    },
-                    "cropped_images": {
-                        "0": np.array([[0, 1, 2], [1, 2, 3], [2, 2, 1]]),
-                        "1": np.array([[0, 1, 3], [2, 2, 4], [3, 4, 5]]),
-                    },
-                    "ordered_trace_heights": {
-                        "0": np.array([5, 2, 3]),
-                        "1": np.array([5, 7, 10]),
-                    },
-                    "ordered_trace_cumulative_distances": {
-                        "0": np.array([0, 1.41, 2.41]),
-                        "1": np.array([0, 1, 2]),
-                    },
-                    "splined_traces": {
-                        "0": np.array(
-                            [
-                                [0, 1],
-                                [1, 0],
-                                [2, 2],
-                            ]
-                        ),
-                        "1": np.array(
-                            [
-                                [0, 0],
-                                [2, 1],
-                                [3, 0],
-                            ]
-                        ),
-                    },
-                },
-            },
-            {
-                "filename",
-                "grain_masks",
-                "grain_trace_data",
-                "image",
-                "image_original",
-                "img_path",
-                "pixel_to_nm_scaling",
-                "topostats_file_version",
-            },
-            id="below_grain_mask_with_grain_trace_data",
-        ),
-        pytest.param(
-            np.arange(0, 100).reshape(10, 10),
-            3.14159265,
-            "above_grain_mask_without_grain_trace_data",
-            "./above_grain_mask_without_grain_trace_data.topostats",
-            np.zeros((10, 10)),
-            None,
-            None,
-            {
-                "filename",
-                "grain_masks",
-                "image",
-                "image_original",
-                "img_path",
-                "pixel_to_nm_scaling",
-                "topostats_file_version",
-            },
-            id="above_grain_mask_without_grain_trace_data",
-        ),
-        pytest.param(
-            np.arange(0, 100).reshape(10, 10),
-            3.14159265,
-            "above_and_below_grain_masks_without_grain_trace_data",
-            "./above_and_below_grain_masks_without_grain_trace_data.topostats",
-            np.zeros((10, 10)),
-            np.zeros((10, 10)),
-            None,
-            {
-                "filename",
-                "grain_masks",
-                "image",
-                "image_original",
-                "img_path",
-                "pixel_to_nm_scaling",
-                "topostats_file_version",
-            },
-            id="above_and_below_grain_masks_without_grain_trace_data",
-        ),
-    ],
-)
-def test_save_and_load_topostats_file(
-    load_scan_topostats_test_file: LoadScans,
-    tmp_path: Path,
-    image: np.ndarray,
-    pixel_to_nm_scaling: float,
-    filename: str,
-    img_path: str,
-    grain_mask_above: np.ndarray,
-    grain_mask_below: np.ndarray,
-    grain_trace_data: dict,
-    data_keys: set,
-) -> None:
-    """Test saving a .topostats file."""
-    topostats_object = {
-        "filename": filename,
-        "img_path": img_path,
-        "pixel_to_nm_scaling": pixel_to_nm_scaling,
-        "image_original": image,
-        "image": image,
-        "grain_masks": {"above": grain_mask_above, "below": grain_mask_below},
-        "grain_trace_data": grain_trace_data,
-    }
-    save_topostats_file(
-        output_dir=tmp_path,
-        filename="topostats_file_test.topostats",
-        topostats_object=topostats_object,
-    )
-
-    # Load the saved .topostats file using LoadScans
-    loadscans = load_scan_topostats_test_file
-    loadscans.get_data()
-    assert set(loadscans.img_dict["topostats_file_test"].keys()) == data_keys
-    np.testing.assert_array_equal(image, loadscans.img_dict["topostats_file_test"]["image_original"])
-    assert pixel_to_nm_scaling == loadscans.img_dict["topostats_file_test"]["pixel_to_nm_scaling"]
-    if grain_mask_above is not None:
-        np.testing.assert_array_equal(
-            grain_mask_above, loadscans.img_dict["topostats_file_test"]["grain_masks"]["above"]
-        )
-    if grain_mask_below is not None:
-        np.testing.assert_array_equal(
-            grain_mask_below, loadscans.img_dict["topostats_file_test"]["grain_masks"]["below"]
-        )
-    if grain_trace_data is not None:
-        np.testing.assert_equal(grain_trace_data, loadscans.img_dict["topostats_file_test"]["grain_trace_data"])
-
-
-@pytest.mark.parametrize(
     ("dictionary", "target"),
     [
         pytest.param(
@@ -1372,3 +1170,274 @@ def test_dict_to_json(dictionary: dict, target: dict, tmp_path: Path) -> None:
 
     with outfile.open("r", encoding="utf-8") as f:
         assert target == json.load(f)
+
+
+@pytest.mark.parametrize(
+    ("dictionary", "topostats_expected"),
+    [
+        pytest.param(
+            {
+                "grain_crops": None,
+                "filename": "basic",
+                "pixel_to_nm_scaling": 0.5,
+                "img_path": Path("./"),
+                "image": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "image_original": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "topostats_version": "42",
+            },
+            TopoStats(
+                grain_crops=None,
+                filename="basic",
+                pixel_to_nm_scaling=0.5,
+                img_path=Path("./"),
+                image=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                image_original=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                topostats_version="42",
+            ),
+            id="basic",
+        ),
+        pytest.param(
+            {
+                "grain_crops": {
+                    0: {
+                        "image": np.array([[1, 2], [3, 4]]),
+                        "mask": np.array([[[0, 1], [1, 0]], [[1, 0], [0, 1]]]),
+                        "padding": 1,
+                        "bbox": (0, 1, 0, 1),
+                        "pixel_to_nm_scaling": 0.5,
+                        "filename": "basic_graincrop",
+                        "skeleton": np.array([[0, 1], [1, 0]]),
+                        # "height_profiles": np.array([2, 3]),
+                        "stats": None,
+                    }
+                },
+                "full_mask_tensor": np.array(
+                    [
+                        [[0, 0], [0, 0]],
+                        [[1, 0], [0, 1]],
+                        [[1, 1], [1, 1]],
+                    ]
+                ),
+                "filename": "basic_graincrop",
+                "pixel_to_nm_scaling": 0.5,
+                "img_path": Path("./"),
+                "image": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "image_original": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "topostats_version": "42",
+            },
+            TopoStats(
+                grain_crops={
+                    0: GrainCrop(
+                        image=np.array([[1, 2], [3, 4]]),
+                        mask=np.array([[[0, 1], [1, 0]], [[1, 0], [0, 1]]]),
+                        padding=1,
+                        bbox=(0, 1, 0, 1),
+                        pixel_to_nm_scaling=0.5,
+                        filename="basic_graincrop",
+                        skeleton=np.array([[0, 1], [1, 0]]),
+                        # height_profiles=np.array([2, 3]),
+                        thresholds=[0, 2],
+                        stats=None,
+                    )
+                },
+                full_mask_tensor=np.array(
+                    [
+                        [[0, 0], [0, 0]],
+                        [[1, 0], [0, 1]],
+                        [[1, 1], [1, 1]],
+                    ]
+                ),
+                filename="basic_graincrop",
+                pixel_to_nm_scaling=0.5,
+                img_path=Path("./"),
+                image=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                image_original=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                topostats_version="42",
+            ),
+            id="single crop, no tracing",
+            marks=pytest.mark.xfail(reason="Failing because GrainCrop objects have different memory addresses."),
+        ),
+        pytest.param(
+            {
+                "grain_crops": {
+                    0: {
+                        "image": np.array([[1, 2], [3, 4]]),
+                        "mask": np.array([[[0, 1], [1, 0]], [[1, 0], [0, 1]]]),
+                        "padding": 1,
+                        "bbox": (0, 1, 0, 1),
+                        "pixel_to_nm_scaling": 0.5,
+                        "filename": "basic_graincrop",
+                        "skeleton": np.array([[0, 1], [1, 0]]),
+                        # "height_profiles": np.array([2, 3]),
+                        "stats": None,
+                        "disordered_trace": {
+                            "images": {"pruned_skeleton": np.array([[0, 1], [1, 0]])},
+                            "grain_endpoints": 3,
+                            "grain_junctions": 6,
+                            "total_branch_length": 42,
+                            "grain_width_mean": 8,
+                        },
+                        "nodes": {
+                            0: {"error": False, "pixel_to_nm_scaling": 1, "confidence": 0.999},
+                            1: {"error": True},
+                        },
+                        "ordered_trace": {"molecules": 2, "writhe": "+"},
+                    }
+                },
+                "full_mask_tensor": np.array(
+                    [
+                        [[0, 0], [0, 0]],
+                        [[1, 0], [0, 1]],
+                        [[1, 1], [1, 1]],
+                    ]
+                ),
+                "filename": "basic_graincrop",
+                "pixel_to_nm_scaling": 0.5,
+                "img_path": Path("./"),
+                "image": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "image_original": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                "topostats_version": "42",
+            },
+            TopoStats(
+                grain_crops={
+                    0: GrainCrop(
+                        image=np.array([[1, 2], [3, 4]]),
+                        mask=np.array([[[0, 1], [1, 0]], [[1, 0], [0, 1]]]),
+                        padding=1,
+                        bbox=(0, 1, 0, 1),
+                        pixel_to_nm_scaling=0.5,
+                        filename="basic_graincrop",
+                        skeleton=np.array([[0, 1], [1, 0]]),
+                        # height_profiles=np.array([2, 3]),
+                        stats=None,
+                        thresholds=[0, 2],
+                        disordered_trace=DisorderedTrace(
+                            images={"pruned_skeleton": np.array([[0, 1], [1, 0]])},
+                            grain_endpoints=3,
+                            grain_junctions=6,
+                            total_branch_length=42,
+                            grain_width_mean=8,
+                        ),
+                        nodes={
+                            0: Node(error=False, pixel_to_nm_scaling=1, confidence=0.999),
+                            1: Node(error=True),
+                        },
+                        ordered_trace=OrderedTrace(molecules=2, writhe="+"),
+                    )
+                },
+                full_mask_tensor=np.array(
+                    [
+                        [[0, 0], [0, 0]],
+                        [[1, 0], [0, 1]],
+                        [[1, 1], [1, 1]],
+                    ]
+                ),
+                filename="basic_graincrop",
+                pixel_to_nm_scaling=0.5,
+                img_path=Path("./"),
+                image=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                image_original=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                topostats_version="42",
+            ),
+            id="single crop, tracing (partial)",
+            marks=pytest.mark.xfail(reason="Failing because GrainCrop objects have different memory addresses."),
+        ),
+    ],
+)
+def test_dict_to_topostats(dictionary: dict, topostats_expected: TopoStats) -> None:
+    """Test for dict_to_topostats()."""
+    topostats_object = dict_to_topostats(dictionary)
+    assert topostats_object == topostats_expected
+
+
+@pytest.mark.parametrize(
+    ("df", "dataset", "names", "index", "filename"),
+    [
+        pytest.param(
+            pd.DataFrame.from_dict(
+                {
+                    "image": ["test1"],
+                    "grain_number": [0],
+                    "class": [1],
+                    "subgrain": [0],
+                    "random_stat": [42],
+                    "basename": "./tests",
+                },
+                orient="columns",
+            ).set_index(["image", "grain_number"]),
+            "grain_stats",
+            ["image", "grain_number"],
+            ["image", "grain_number", "class", "subgrain"],
+            "grain_statistics.csv",
+            id="grainstats",
+        ),
+        pytest.param(
+            pd.DataFrame.from_dict(
+                {
+                    "image": ["test2"],
+                    "grain_number": [0],
+                    "node": [0],
+                    "branch": 0,
+                    "random_stat": [42],
+                    "basename": "./tests",
+                },
+                orient="columns",
+            ).set_index(["grain_number", "node", "branch"]),
+            "matched_branch_stats",
+            ["grain_number", "node", "branch"],
+            ["image", "grain_number", "node", "branch"],
+            "matched_branch_statistics.csv",
+            id="matched_branch_stats",
+        ),
+        pytest.param(
+            pd.DataFrame.from_dict(
+                {"image": ["test3"], "grain_number": [0], "index": [0], "random_stat": [42], "basename": "./tests"},
+                orient="columns",
+            ).set_index(["grain_number", "index"]),
+            "branch_statistics",
+            ["grain_number", "index"],
+            ["image", "grain_number", "index"],
+            "branch_statistics.csv",
+            id="branch_statistics",
+        ),
+        pytest.param(
+            pd.DataFrame.from_dict(
+                {"image": ["test4"], "grain_number": [0], "random_stats": [42], "basename": "./tests"}, orient="columns"
+            ),
+            "mol_stats",
+            None,
+            ["image", "grain_number"],
+            "molecule_statistics.csv",
+            id="mol_stats",
+        ),
+    ],
+)
+def test_write_csv(
+    df: pd.DataFrame, dataset: str, names: list[str], index: list[str], filename: str, tmp_path: Path
+) -> None:
+    """Test of write_csv() function."""
+    _ = write_csv(df=df, dataset=dataset, names=names, index=index, output_dir=tmp_path, base_dir="tests/")
+    assert Path(tmp_path / filename).is_file()
+
+
+@pytest.mark.parametrize(
+    ("dummy_graincrop_fixture", "expected"),
+    [
+        pytest.param(
+            "dummy_graincrop",
+            {"file1": {"0": {"1": {"0": [1, 2, 3, 4, 5]}}, "1": {"1": {"0": [1, 2, 3, 4, 5]}}}},
+            id="sample dictionary of TopoStats with height profiles.",
+        ),
+    ],
+)
+def test_extract_height_profiles(
+    dummy_graincrop_fixture: str, tmp_path: Path, expected: dict[str, dict[int, list, int | float]], request
+) -> None:
+    """Test extract_height_profiles."""
+    dummy_graincrop = request.getfixturevalue(dummy_graincrop_fixture)
+    topostats_object_all = {"file1": TopoStats(grain_crops={0: dummy_graincrop, 1: dummy_graincrop})}
+    extract_height_profiles(topostats_object_all=topostats_object_all, output_dir=tmp_path, filename="heights.json")
+    assert Path(tmp_path / "heights.json").is_file()
+    with Path(tmp_path / "heights.json").open(mode="r", encoding="utf-8") as json_file:
+        height_data = json.load(json_file)
+        assert height_data == expected

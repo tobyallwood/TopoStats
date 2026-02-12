@@ -1,5 +1,8 @@
 # API
 
+- [`array_manipulation.py`](array_manipulation.md)
+- [`classes.py`](classes.md)
+- [`config.py`](config.md)
 - [`entry_point.py`](entry_point.md)
 - [`filters.py`](filters.md)
 - [`grains.py`](grains.md)

@@ -1,14 +1,10 @@
 """Prune branches from skeletons."""
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 
 import numpy as np
 import numpy.typing as npt
-
-# from skimage.morphology import binary_dilation, label
 from skimage import morphology
 
 from topostats.logs.logs import LOGGER_NAME
@@ -207,6 +203,7 @@ def _prune_topostats(img: npt.NDArray, skeleton: npt.NDArray, pixel_to_nm_scalin
 
 
 # Might be worth renaming this to reflect what it does which is prune by length and height
+# pylint: disable=too-many-instance-attributes
 class topostatsPrune:
     """
     Prune spurious skeletal branches based on their length and/or height.
@@ -231,9 +228,12 @@ class topostatsPrune:
     method_outlier : str
         Method for pruning brancvhes based on height. Options are 'abs' (below absolute value), 'mean_abs' (below the
         skeleton mean - absolute threshold) or 'iqr' (below 1.5 * inter-quartile range).
+    only_height_prune_endpoints : bool
+        Whether to only prune endpoints by height, or all skeleton segments.
     """
 
     # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
     def __init__(
         self,
         img: npt.NDArray,
@@ -243,6 +243,7 @@ class topostatsPrune:
         height_threshold: float = None,
         method_values: str = None,
         method_outlier: str = None,
+        only_height_prune_endpoints: bool = True,
     ) -> None:
         """
         Initialise the class.
@@ -263,8 +264,10 @@ class topostatsPrune:
             Method for obtaining the height thresholding values. Options are 'min' (minimum value of the branch),
             'median' (median value of the branch) or 'mid' (ordered branch middle coordinate value).
         method_outlier : str
-            Method for pruning brancvhes based on height. Options are 'abs' (below absolute value), 'mean_abs' (below
+            Method for pruning branches based on height. Options are 'abs' (below absolute value), 'mean_abs' (below
             the skeleton mean - absolute threshold) or 'iqr' (below 1.5 * inter-quartile range).
+        only_height_prune_endpoints : bool
+            Whether to only prune endpoints by height, or all skeleton segments.
         """
         self.img = img
         self.skeleton = skeleton.copy()
@@ -273,6 +276,7 @@ class topostatsPrune:
         self.height_threshold = height_threshold
         self.method_values = method_values
         self.method_outlier = method_outlier
+        self.only_height_prune_endpoints = only_height_prune_endpoints
 
     # Diverges from the change in layout to apply skeletonisation/pruning/tracing to individual grains and then process
     # all grains in an image (possibly in parallel).
@@ -289,7 +293,6 @@ class topostatsPrune:
             A pruned skeleton.
         """
         pruned_skeleton_mask = np.zeros_like(self.skeleton, dtype=np.uint8)
-        # print(f"{pruned_skeleton_mask=}")
         labeled_skel = morphology.label(self.skeleton)
         for i in range(1, labeled_skel.max() + 1):
             single_skeleton = np.where(labeled_skel == i, 1, 0)
@@ -304,6 +307,7 @@ class topostatsPrune:
                     height_threshold=self.height_threshold,
                     method_values=self.method_values,
                     method_outlier=self.method_outlier,
+                    only_height_prune_endpoints=self.only_height_prune_endpoints,
                 ).skeleton_pruned
             # skeletonise to remove nibs
             # Discovered this caused an error when writing tests...
@@ -400,8 +404,12 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
     method_outlier : str
         Method to prune branches based on height. Options are 'abs' (below absolute value), 'mean_abs' (below the
         skeleton mean - absolute threshold) or 'iqr' (below 1.5 * inter-quartile range).
+    only_height_prune_endpoints : bool
+        Whether to only prune endpoints by height, or all skeleton segments. Default is True.
     """  # numpydoc: ignore=PR01
 
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
     def __init__(
         self,
         image: npt.NDArray,
@@ -410,6 +418,7 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         height_threshold: float = None,
         method_values: str = None,
         method_outlier: str = None,
+        only_height_prune_endpoints: bool = True,
     ) -> None:
         """
         Initialise the class.
@@ -430,6 +439,8 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         method_outlier : str
             Method to prune branches based on height. Options are 'abs' (below absolute value), 'mean_abs' (below the
             skeleton mean - absolute threshold) or 'iqr' (below 1.5 * inter-quartile range).
+        only_height_prune_endpoints : bool
+            Whether to only prune endpoints by height, or all skeleton segments. Default is True.
         """
         self.image = image
         self.skeleton = skeleton
@@ -440,6 +451,7 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         self.height_threshold = height_threshold
         self.method_values = method_values
         self.method_outlier = method_outlier
+        self.only_height_prune_endpoints = only_height_prune_endpoints
         self.convolve_skeleton()
         self.segment_skeleton()
         self.label_branches()
@@ -509,8 +521,11 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         for i in range(1, segments.max() + 1):
             segment = np.where(segments == i, 1, 0)
             if segment.sum() > 2:
-                # sometimes start is not found ?
-                start = np.argwhere(convolve_skeleton(segment) == 2)[0]
+                endpoints = np.argwhere(convolve_skeleton(segment) == 2)
+                if len(endpoints) > 0:
+                    start = endpoints[0]
+                else:
+                    start = np.argwhere(convolve_skeleton(segment) == 1)[0]
                 ordered_coords = order_branch_from_end(segment, start)
                 # if even no. points, average two middles
                 middle_idx, middle_remainder = (len(ordered_coords) + 1) // 2 - 1, (len(ordered_coords) + 1) % 2
@@ -569,8 +584,8 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
             Branch indices which are less than mean(height) - threshold.
         """
         avg = image[skeleton == 1].mean()
-        print(f"{avg=}")
-        print(f"{(avg-threshold)=}")
+        LOGGER.debug(f": pruning.py : Avg skeleton height: {avg=}")
+        LOGGER.debug(f": pruning.py : mean_abs threshold: {(avg-threshold)=}")
         return np.asarray(np.where(np.asarray(height_values) < (avg - threshold)))[0] + 1
 
     @staticmethod
@@ -595,9 +610,7 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         q75, q25 = np.percentile(heights, [75, 25])
         iqr = q75 - q25
         threshold = q25 - 1.5 * iqr
-        print(f"{q25=}")
-        print(f"{q75=}")
-        print(f"{threshold=}")
+        LOGGER.debug(f": pruning.py : IQR threshold {threshold=}")
         low_coords = coords[heights < threshold]
         low_segment_idxs = []
         low_segment_mins = []
@@ -645,20 +658,31 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
             The original skeleton without the segments identified by the height criteria.
         """
         # Obtain the height of each branch via the min | median | mid methods
+        height_values = None
         if self.method_values == "min":
             height_values = self._get_branch_mins(segments)
         elif self.method_values == "median":
             height_values = self._get_branch_medians(segments)
         elif self.method_values == "mid":
             height_values = self._get_branch_middles(segments)
+        else:
+            raise ValueError(
+                "[pruning] Invalid value for disordered_tracing.pruning_params.method_values :"
+                f"{self.method_values}\n Valid values are 'min', 'median' or 'mid'."
+            )
         # threshold heights to obtain indexes of branches to be removed
+        idxs = None
         if self.method_outlier == "abs":
             idxs = self._get_abs_thresh_idx(height_values, self.height_threshold)
         elif self.method_outlier == "mean_abs":
             idxs = self._get_mean_abs_thresh_idx(height_values, self.height_threshold, self.image, self.skeleton)
         elif self.method_outlier == "iqr":
             idxs = self._get_iqr_thresh_idx(self.image, segments)
-
+        else:
+            raise ValueError(
+                "[pruning] Invalid value for disordered_tracing.pruning_params.method_outlier :"
+                f"{self.method_values}\n Valid values are 'abs', 'mean_abs' or 'iqr'."
+            )
         # Only remove the bridge if the skeleton remains a single object.
         skeleton_rtn = self.skeleton.copy()
         for i in idxs:
@@ -706,11 +730,12 @@ class heightPruning:  # pylint: disable=too-many-instance-attributes
         """
         conv = convolve_skeleton(self.skeleton)
         segments = self._split_skeleton(conv)
-        # height pruning should only concern endpoints so remove internal connections
-        for i in range(1, segments.max() + 1):
-            if not (conv[segments == i] == 2).any():
-                segments[segments == i] = 0
-        segments = morphology.label(np.where(segments != 0, 1, 0))
+        # if height pruning should only concern endpoints so remove internal connections
+        if self.only_height_prune_endpoints:
+            for i in range(1, segments.max() + 1):
+                if not (conv[segments == i] == 2).any():
+                    segments[segments == i] = 0
+            segments = morphology.label(np.where(segments != 0, 1, 0))
 
         # filter the segments based on height criteria
         return self.filter_segments(segments)
@@ -820,7 +845,7 @@ def rm_nibs(skeleton):  # pylint: disable=too-many-locals
 
     for node_num in range(1, labeled_nodes.max() + 1):
         node = np.where(labeled_nodes == node_num, 1, 0)
-        dil = morphology.binary_dilation(node, footprint=np.ones((3, 3)))
+        dil = morphology.dilation(node, footprint=np.ones((3, 3)))
         minus = np.where(dil != node, 1, 0)
 
         idxs = labeled_nodeless[minus == 1]

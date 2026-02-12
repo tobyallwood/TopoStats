@@ -48,6 +48,9 @@ nav:
       - advanced/splining.md
   - "API":
       - api/index.md
+      - Array Manipulation: api/array_manipulation.md
+      - Classes: api/classes.md
+      - Config: api/config.md
       - Entry Point: api/entry_point.md
       - Filters: api/filters.md
       - Grains: api/grains.md
@@ -55,6 +58,7 @@ nav:
       - IO: api/io.md
       - Plotting: api/plotting.md
       - PlottingFuncs: api/plottingfuncs.md
+      - Processing: api/processing.md
       - Run Modules: api/run_modules.md
       - Scars: api/scars.md
       - Statistics: api/statistics.md

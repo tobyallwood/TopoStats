@@ -1,85 +1,20 @@
 """Test end-to-end running of topostats."""
 
-import argparse
 import logging
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from AFMReader import topostats
+from syrupy.matchers import path_type
 
+from topostats.classes import GrainCrop, TopoStats
 from topostats.entry_point import entry_point
+from topostats.io import dict_to_topostats
 from topostats.logs.logs import LOGGER_NAME
-from topostats.run_modules import _set_logging, reconcile_config_args
-from topostats.validation import DEFAULT_CONFIG_SCHEMA, validate_config
+from topostats.run_modules import _set_logging
 
 BASE_DIR = Path.cwd()
-
-
-def test_reconcile_config_args_no_config() -> None:
-    """Test the handle config file function with no config."""
-    args = argparse.Namespace(
-        program="process",
-        config_file=None,
-    )
-    config = reconcile_config_args(args=args)
-
-    # Check that the config passes the schema
-    validate_config(config, schema=DEFAULT_CONFIG_SCHEMA, config_type="YAML configuration file")
-
-
-def test_reconcile_config_args_no_config_with_overrides() -> None:
-    """Test the handle config file function with no config and overrides."""
-    args = argparse.Namespace(
-        program="process",
-        config_file=None,
-        output_dir="./dummy_output_dir",
-    )
-    config = reconcile_config_args(args=args)
-
-    # Check that the overrides have been applied
-    assert config["output_dir"] == Path("./dummy_output_dir")
-    # Check that the config still passes the schema
-    validate_config(config, schema=DEFAULT_CONFIG_SCHEMA, config_type="YAML configuration file")
-
-
-def test_reconcile_config_args_full_config() -> None:
-    """Test the handle config file function with a full config."""
-    args = argparse.Namespace(program="process", config_file=f"{BASE_DIR / 'topostats' / 'default_config.yaml'}")
-
-    config = reconcile_config_args(args=args)
-
-    # Check that the config passes the schema
-    validate_config(config, schema=DEFAULT_CONFIG_SCHEMA, config_type="YAML configuration file")
-
-
-def test_reconcile_config_args_partial_config() -> None:
-    """Test the reconcile_config_args function with a partial config."""
-    args = argparse.Namespace(
-        program="process", config_file=f"{BASE_DIR / 'tests' / 'resources' / 'test_partial_config.yaml'}"
-    )
-    config = reconcile_config_args(args=args)
-
-    # Check that the partial config has overridden the default config
-    assert config["filter"]["threshold_method"] == "absolute"
-    # Check that the config still passes the schema
-    validate_config(config, schema=DEFAULT_CONFIG_SCHEMA, config_type="YAML configuration file")
-
-
-def test_reconcile_config_args_partial_config_with_overrides() -> None:
-    """Test the reconcile_config_args function with a partial config and overrides."""
-    args = argparse.Namespace(
-        program="process",
-        config_file=f"{BASE_DIR / 'tests' / 'resources' / 'test_partial_config.yaml'}",
-        output_dir="./dummy_output_dir",
-    )
-    config = reconcile_config_args(args=args)
-
-    # Check that the partial config has overridden the default config
-    assert config["filter"]["threshold_method"] == "absolute"
-    # Check that the overrides have been applied
-    assert config["output_dir"] == Path("./dummy_output_dir")
-    # Check that the config still passes the schema
-    validate_config(config, schema=DEFAULT_CONFIG_SCHEMA, config_type="YAML configuration file")
 
 
 @pytest.mark.parametrize(
@@ -154,7 +89,25 @@ def test_run_topostats_process_debug(caplog) -> None:
         assert "~~~~~~~~~~~~~~~~~~~~ COMPLETE ~~~~~~~~~~~~~~~~~~~~" in caplog.text
 
 
-def test_filters(caplog) -> None:
+@pytest.mark.parametrize(
+    ("attributes"),
+    [
+        pytest.param(
+            [
+                "filename",
+                "image",
+                "image_original",
+                "img_path",
+                "pixel_to_nm_scaling",
+                "config",
+                "grain_crops",
+                "topostats_version",
+            ],
+            id="file_version <= 2.3",
+        ),
+    ],
+)
+def test_filters(attributes: dict, caplog) -> None:
     """Test running the filters module.
 
     We use the command line entry point to test that _just_ filters runs.
@@ -173,20 +126,68 @@ def test_filters(caplog) -> None:
     )
     assert "Looking for images with extension   : .topostats" in caplog.text
     assert "[minicircle_small] Filtering completed." in caplog.text
-    # Load the output and check the keys
-    data = topostats.load_topostats("output/processed/minicircle_small.topostats")
-    assert list(data.keys()) == [
-        "filename",
-        "image",
-        "image_original",
-        "img_path",
-        "pixel_to_nm_scaling",
-        "topostats_file_version",
-    ]
+    # Load the output file with AFMReader check its a dictionary and convert to TopoStats
+    data = topostats.load_topostats("output/processed/topostats/minicircle_small.topostats")
+    assert isinstance(data, dict)
+    topostats_object = dict_to_topostats(dictionary=data)
+    assert isinstance(topostats_object, TopoStats)
+    for attribute in attributes:
+        assert hasattr(topostats_object, attribute)
 
 
-def test_grains(caplog) -> None:
+@pytest.mark.parametrize(
+    ("attributes"),
+    [
+        pytest.param(
+            [
+                "config",
+                "filename",
+                "full_mask_tensor",
+                "grain_crops",
+                "image",
+                "image_original",
+                "img_path",
+                "pixel_to_nm_scaling",
+                "topostats_version",
+            ],
+            id="running grains",
+        ),
+    ],
+)
+def test_grains(attributes: dict, caplog, tmp_path: Path) -> None:
     """Test running the grains module.
+
+    We use the command line entry point to test that _just_ grains runs.
+    """
+    caplog.set_level(logging.DEBUG)
+    entry_point(
+        manually_provided_args=[
+            "--config",
+            f"{BASE_DIR / 'topostats' / 'default_config.yaml'}",
+            "--base-dir",
+            "./tests/resources/test_image/",
+            "--file-ext",
+            ".topostats",
+            "--output-dir",
+            f"{tmp_path}/output",
+            "grains",  # This is the sub-command we wish to test, it will call run_modules.grains()
+        ]
+    )
+    assert "Looking for images with extension   : .topostats" in caplog.text
+    assert "[minicircle_small] Grain detection completed (NB - Filtering was *not* re-run)." in caplog.text
+    # Load the output file with AFMReader check its a dictionary and convert to TopoStats
+    data = topostats.load_topostats(tmp_path / "output/processed/topostats/minicircle_small.topostats")
+    assert isinstance(data, dict)
+    topostats_object = dict_to_topostats(dictionary=data)
+    assert isinstance(topostats_object, TopoStats)
+    for attribute in attributes:
+        assert hasattr(topostats_object, attribute)
+    for _, grain_crop in topostats_object.grain_crops.items():
+        assert isinstance(grain_crop, GrainCrop)
+
+
+def test_grainstats(caplog, snapshot) -> None:
+    """Test running the grainstats module.
 
     We use the command line entry point to test that _just_ grains runs.
     """
@@ -199,19 +200,62 @@ def test_grains(caplog) -> None:
             "./tests/resources/test_image/",
             "--file-ext",
             ".topostats",
-            "grains",  # This is the sub-command we wish to test, it will call run_modules.grains()
+            "grainstats",  # This is the sub-command we wish to test, it will call run_modules.grains()
         ]
     )
     assert "Looking for images with extension   : .topostats" in caplog.text
-    assert "[minicircle_small] Grain detection completed (NB - Filtering was *not* re-run)." in caplog.text
-    # Load the output and check the keys
-    data = topostats.load_topostats("output/processed/minicircle_small.topostats")
-    assert list(data.keys()) == [
-        "filename",
-        "grain_masks",
-        "image",
-        "image_original",
-        "img_path",
-        "pixel_to_nm_scaling",
-        "topostats_file_version",
-    ]
+    assert "[minicircle_small] Grainstats completed (NB - Filtering was *not* re-run)." in caplog.text
+    # Load the output and check contents
+    data = pd.read_csv("output/image_statistics.csv")
+    data.drop(["basename"], axis=1, inplace=True)
+    assert data.to_string(float_format="{:.4e}".format) == snapshot(
+        matcher=path_type(types=(float,), replacer=lambda data, _: round(data, 4))
+    )
+
+
+def test_bruker_rename(tmp_path: Path, caplog) -> None:
+    """Test renaming of old Bruker files."""
+    # Create 100 dummy test files
+    for x in range(1, 101):
+        test_file = tmp_path / f"test.{x:{0}>3}"
+        test_file.touch(exist_ok=True)
+    # Create a single dummy with .spm extension
+    tmp_spm = tmp_path / "test.spm"
+    tmp_spm.touch(exist_ok=True)
+    caplog.set_level(logging.INFO)
+    entry_point(
+        manually_provided_args=[
+            "--base-dir",
+            f"{tmp_path}",
+            "bruker-rename",  # This is the sub-command we wish to test, it will call run_modules.grains()
+        ]
+    )
+    assert "Total Bruker files found : 101" in caplog.text
+    assert "Old style files found    : 100" in caplog.text
+    assert "test.001 > test.001.spm" in caplog.text
+    assert "test.051 > test.051.spm" in caplog.text
+    assert "test.100 > test.100.spm" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("file_ext"),
+    [
+        pytest.param(".asd", id="asd"),
+        pytest.param(".ibw", id="ibw"),
+        pytest.param(".gwy", id="gwy"),
+        pytest.param(".jpk", id="jpk"),
+        pytest.param(".stp", id="stp"),
+        pytest.param(".top", id="top"),
+        pytest.param(".topostats", id="topostats"),
+    ],
+)
+def test_bruker_rename_assertion_error(file_ext: str) -> None:
+    """Test AssertionError is raised when file_ext for renaming old Bruker files is wrong."""
+    with pytest.raises(AssertionError):
+        entry_point(
+            manually_provided_args=[
+                "--file-ext",
+                file_ext,
+                "bruker-rename",  # This is the sub-command we wish to test, it will call run_modules.grains()
+            ]
+        )

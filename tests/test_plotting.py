@@ -1,19 +1,13 @@
 """Tests for the plotting module."""
 
-from __future__ import annotations
-
-from importlib import resources
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import pytest
-import yaml
 from matplotlib.figure import Figure
 
-import topostats
-from topostats.entry_point import entry_point
 from topostats.plotting import TopoSum, _pad_array, plot_height_profiles, toposum
 
 # pylint: disable=protected-access
@@ -80,33 +74,11 @@ def test_args_input_csv() -> None:
     assert True
 
 
-def test_var_to_label_config(tmp_path: Path) -> None:
-    """Test the var_to_label configuration file is created correctly."""
-    with pytest.raises(SystemExit):
-        entry_point(
-            manually_provided_args=[
-                "summary",
-                "--create-label-file",
-                f"{tmp_path / 'var_to_label_config.yaml'}",
-                "--input-csv",
-                f"{str(RESOURCES / 'minicircle_default_all_statistics.csv')}",
-            ]
-        )
-    var_to_label_config = tmp_path / "var_to_label_config.yaml"
-    with var_to_label_config.open("r", encoding="utf-8") as f:
-        var_to_label_str = f.read()
-    var_to_label = yaml.safe_load(var_to_label_str)
-    plotting_yaml = (resources.files(topostats.__package__) / "var_to_label.yaml").read_text()
-    expected_var_to_label = yaml.safe_load(plotting_yaml)
-
-    assert var_to_label == expected_var_to_label
-
-
 @pytest.mark.parametrize(
     ("var", "expected_label"),
     [
         ("total_contour_length", "Total Contour Length"),
-        ("average_end_to_end_distance", "Average End to End Distance"),
+        ("mean_end_to_end_distance", "Mean End to End Distance"),
         ("grain_bound_len", "Circumference"),
         ("grain_curvature1", "Smaller Curvature"),
     ],

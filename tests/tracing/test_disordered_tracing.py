@@ -2,17 +2,15 @@
 # ruff: noqa: S301
 """Test the disordered tracing module."""
 
-from __future__ import annotations
-
 import logging
-import pickle as pkl
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
-from topostats.io import dict_almost_equal  # pylint: disable=no-name-in-module import-error
+from topostats.classes import TopoStats
 from topostats.logs.logs import LOGGER_NAME
 from topostats.tracing import disordered_tracing
 
@@ -23,8 +21,9 @@ from topostats.tracing import disordered_tracing
 # pylint: disable=unspecified-encoding
 
 BASE_DIR = Path.cwd()
-DISORDERED_TRACING_RESOURCES = BASE_DIR / "tests" / "resources" / "tracing" / "disordered_tracing"
-GENERAL_RESOURCES = BASE_DIR / "tests" / "resources"
+RESOURCES = BASE_DIR / "tests" / "resources"
+TRACING_RESOURCES = RESOURCES / "tracing"
+DISORDERED_TRACING_RESOURCES = TRACING_RESOURCES / "disordered_tracing"
 
 TEST_LABELLED = np.asarray(
     [
@@ -186,7 +185,7 @@ def test_crop_array(bounding_box: tuple, target: np.array, pad_width: int) -> No
         "pruning_params",
         "filename",
         "min_skeleton_size",
-        "expected_smoothed_grain",
+        "expected_smoothed_mask",
         "expected_skeleton",
         "expected_pruned_skeleton",
         "expected_branch_types",
@@ -1260,7 +1259,7 @@ def test_disordered_trace_grain(
     pruning_params: dict,
     filename: str,
     min_skeleton_size: int,
-    expected_smoothed_grain: npt.NDArray[np.bool_],
+    expected_smoothed_mask: npt.NDArray[np.bool_],
     expected_skeleton: npt.NDArray[np.bool_],
     expected_pruned_skeleton: npt.NDArray[np.bool_],
     expected_branch_types: npt.NDArray[np.int32],
@@ -1276,36 +1275,50 @@ def test_disordered_trace_grain(
         filename=filename,
         min_skeleton_size=min_skeleton_size,
     )
+    np.testing.assert_array_equal(result_dict["smoothed_mask"], expected_smoothed_mask)
+    np.testing.assert_array_equal(result_dict["skeleton"], expected_skeleton)
+    np.testing.assert_array_equal(result_dict["pruned_skeleton"], expected_pruned_skeleton)
+    np.testing.assert_array_equal(result_dict["branch_types"], expected_branch_types)
 
-    result_smoothed_grain = result_dict["smoothed_grain"]
-    result_skeleton = result_dict["skeleton"]
-    result_pruned_skeleton = result_dict["pruned_skeleton"]
-    result_branch_types = result_dict["branch_types"]
 
-    np.testing.assert_array_equal(result_smoothed_grain, expected_smoothed_grain)
-    np.testing.assert_array_equal(result_skeleton, expected_skeleton)
-    np.testing.assert_array_equal(result_pruned_skeleton, expected_pruned_skeleton)
-    np.testing.assert_array_equal(result_branch_types, expected_branch_types)
+@pytest.mark.parametrize(
+    ("mask", "expected_return"),
+    [
+        pytest.param(np.array([[0, 0, 0], [0, 1, 1], [0, 0, 0]]), True, id="pixel touching right edge"),
+        pytest.param(np.array([[0, 0, 0], [1, 1, 0], [0, 0, 0]]), True, id="pixel touching left edge"),
+        pytest.param(np.array([[0, 1, 0], [0, 1, 0], [0, 0, 0]]), True, id="pixel touching top edge"),
+        pytest.param(np.array([[0, 0, 0], [0, 1, 0], [0, 1, 0]]), True, id="pixel touching bottom edge"),
+        pytest.param(np.array([[0, 1, 0], [0, 1, 0], [0, 1, 0]]), True, id="pixel touching top and bottom edge"),
+        pytest.param(np.array([[0, 0, 0], [1, 1, 1], [0, 0, 0]]), True, id="pixel touching left and right edges"),
+        pytest.param(np.array([[0, 1, 0], [1, 1, 0], [0, 0, 0]]), True, id="pixel touching top and left edges"),
+        pytest.param(np.array([[0, 1, 0], [0, 1, 1], [0, 0, 0]]), True, id="pixel touching top and right edge"),
+        pytest.param(np.array([[0, 0, 0], [1, 1, 0], [0, 1, 0]]), True, id="pixel touching left and bottom edge"),
+        pytest.param(np.array([[0, 0, 0], [0, 1, 1], [0, 1, 0]]), True, id="pixel touching right and bottom edge"),
+        pytest.param(np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]), False, id="no pixels touching any edge"),
+    ],
+)
+def test_check_pixel_touching_edge(
+    mask: npt.NDArray,
+    expected_return: bool,
+) -> None:
+    """Test the check_missing_padding() method."""
+    result = disordered_tracing.check_pixel_touching_edge(mask)
+    assert result == expected_return
 
 
 @pytest.mark.parametrize(
     (
         "image_filename",
-        "mask_filename",
-        "pixel_to_nm_scaling",
+        "topostats_object_fixture",
         "min_skeleton_size",
         "mask_smoothing_params",
         "skeletonisation_params",
         "pruning_params",
-        "expected_disordered_crop_data_filename",
-        "expected_all_images_filename",
     ),
     [
         pytest.param(
             "example_catenanes.npy",
-            "example_catenanes_labelled_grain_mask_thresholded.npy",
-            # Pixel to nm scaling
-            0.488,
+            "topostats_catenanes_2_4_0",
             # Min skeleton size
             10,
             # Mask smoothing parameters
@@ -1327,15 +1340,11 @@ def test_disordered_trace_grain(
                 "method_values": "mid",
                 "method_outlier": "mean_abs",
             },
-            "catenanes_disordered_tracing_crop_data.pkl",
-            "catenanes_disordered_tracing_all_images.pkl",
             id="catenane",
         ),
         pytest.param(
             "example_rep_int.npy",
-            "example_rep_int_labelled_grain_mask_thresholded.npy",
-            # Pixel to nm scaling
-            0.488,
+            "topostats_rep_int_2_4_0",
             # Min skeleton size
             10,
             # Mask smoothing parameters
@@ -1357,76 +1366,49 @@ def test_disordered_trace_grain(
                 "method_values": "mid",
                 "method_outlier": "mean_abs",
             },
-            "rep_int_disordered_tracing_crop_data.pkl",
-            "rep_int_disordered_tracing_all_images.pkl",
             id="replication intermediate",
         ),
     ],
 )
 def test_trace_image_disordered(
     image_filename: str,
-    mask_filename: str,
-    pixel_to_nm_scaling: float,
+    topostats_object_fixture: str,
     min_skeleton_size: int,
     mask_smoothing_params: dict,
     skeletonisation_params: dict,
     pruning_params: dict,
-    expected_disordered_crop_data_filename: str,
-    expected_all_images_filename: str,
+    request,
+    snapshot,
 ) -> None:
     """Test the trace image disordered method."""
     # Load the image
-    image = np.load(GENERAL_RESOURCES / image_filename)
-    mask = np.load(GENERAL_RESOURCES / mask_filename)
-
-    (
-        result_disordered_crop_data,
-        _,
-        result_all_images,
-        _,
-    ) = disordered_tracing.trace_image_disordered(
-        image=image,
-        grains_mask=mask,
-        filename="test_image",
-        pixel_to_nm_scaling=pixel_to_nm_scaling,
+    image: npt.NDArray[float] = np.load(TRACING_RESOURCES / image_filename)
+    # Load TopoStats fixture and set image
+    topostats_object: TopoStats = request.getfixturevalue(topostats_object_fixture)
+    topostats_object.image = image
+    disordered_tracing.trace_image_disordered(
+        topostats_object=topostats_object,
+        class_index=1,
         min_skeleton_size=min_skeleton_size,
         mask_smoothing_params=mask_smoothing_params,
         skeletonisation_params=skeletonisation_params,
         pruning_params=pruning_params,
-        pad_width=1,
     )
-
-    # DEBUGGING CODE
-    # Turning sub-structures into variables to be able to be inspected
-    # variable_smoothed_grain = result_all_images["smoothed_grain"]
-    # variable_skeleton = result_all_images["skeleton"]
-    # variable_pruned_skeleton = result_all_images["pruned_skeleton"]
-    # variable_branch_types = result_all_images["branch_types"]
-
-    # # Update expected values - CHECK RESULTS WITH EXPERT BEFORE UPDATING
-    # # Pickle result_disordered_crop_data
-    # with open(DISORDERED_TRACING_RESOURCES / expected_disordered_crop_data_filename, "wb") as f:
-    #     pkl.dump(result_disordered_crop_data, f)
-
-    # # Save result_all_images as a pickle
-    # with open(DISORDERED_TRACING_RESOURCES / expected_all_images_filename, "wb") as f:
-    #     pkl.dump(result_all_images, f)
-
-    # Load expected values
-    with Path.open(DISORDERED_TRACING_RESOURCES / expected_disordered_crop_data_filename, "rb") as f:
-        expected_disordered_crop_data = pkl.load(f)
-
-    with Path.open(DISORDERED_TRACING_RESOURCES / expected_all_images_filename, "rb") as f:
-        expected_all_images = pkl.load(f)
-    assert dict_almost_equal(result_disordered_crop_data, expected_disordered_crop_data, abs_tol=1e-11)
-    assert dict_almost_equal(result_all_images, expected_all_images, abs_tol=1e-11)
+    # Have to remove basename from stats as it varies between computer tests run on
+    for _, grain_crop in topostats_object.grain_crops.items():
+        for _, stat in grain_crop.disordered_trace.stats.items():
+            stat["basename"] = None
+    # Only the catenane image has a second GrainCrop to assess the disordered trace of
+    assert topostats_object.grain_crops[0].disordered_trace == snapshot
+    if request.node.callspec.id == "catenane":
+        assert topostats_object.grain_crops[1].disordered_trace == snapshot
 
 
 @pytest.mark.parametrize(
     (
         "image_filename",
-        "mask_filename",
-        "pixel_to_nm_scaling",
+        "filename",
+        "topostats_object",
         "min_skeleton_size",
         "mask_smoothing_params",
         "skeletonisation_params",
@@ -1435,9 +1417,8 @@ def test_trace_image_disordered(
     [
         pytest.param(
             "example_catenanes.npy",
-            "example_catenanes_labelled_grain_mask_thresholded.npy",
-            # Pixel to nm scaling
-            0.488,
+            "example_catenanes",
+            "topostats_catenanes_2_4_0",
             # Min skeleton size
             10,
             # Mask smoothing parameters
@@ -1463,9 +1444,8 @@ def test_trace_image_disordered(
         ),
         pytest.param(
             "example_rep_int.npy",
-            "example_rep_int_labelled_grain_mask_thresholded.npy",
-            # Pixel to nm scaling
-            0.488,
+            "example_rep_int",
+            "topostats_rep_int_2_4_0",
             # Min skeleton size
             10,
             # Mask smoothing parameters
@@ -1493,42 +1473,37 @@ def test_trace_image_disordered(
 )
 def test_trace_image_disordered_dataframes(
     image_filename: str,
-    mask_filename: str,
-    pixel_to_nm_scaling: float,
+    filename: str,
+    topostats_object: str,
     min_skeleton_size: int,
     mask_smoothing_params: dict,
     skeletonisation_params: dict,
     pruning_params: dict,
-    regtest: callable,
+    request: pytest.FixtureRequest,
+    snapshot,
 ) -> None:
     """Test the trace image disordered method produces correct dataframes (/csv files)."""
     # Load the image
-    image = np.load(GENERAL_RESOURCES / image_filename)
-    mask = np.load(GENERAL_RESOURCES / mask_filename)
-
-    (
-        _,
-        result_disordered_tracing_grainstats,
-        _,
-        result_disordered_tracing_stats,
-    ) = disordered_tracing.trace_image_disordered(
-        image=image,
-        grains_mask=mask,
-        filename="test_image",
-        pixel_to_nm_scaling=pixel_to_nm_scaling,
+    full_image = np.load(RESOURCES / image_filename)
+    topostats_object = request.getfixturevalue(topostats_object)
+    topostats_object.image = full_image
+    topostats_object.filename = filename
+    disordered_tracing.trace_image_disordered(
+        topostats_object=topostats_object,
+        class_index=1,
         min_skeleton_size=min_skeleton_size,
         mask_smoothing_params=mask_smoothing_params,
         skeletonisation_params=skeletonisation_params,
         pruning_params=pruning_params,
-        pad_width=1,
     )
-    print(result_disordered_tracing_grainstats.to_string(float_format="{:.4e}".format), file=regtest)
-    print(result_disordered_tracing_stats.to_string(float_format="{:.4e}".format), file=regtest)
-
-
-@pytest.mark.skip(reason="Awaiting test to be written 2024-10-15.")
-def test_compile_skan_stats() -> None:
-    """Test of prep_compile_skan_stats()."""
+    # Have to remove basename from stats as it varies between computer tests run on
+    for _, grain_crop in topostats_object.grain_crops.items():
+        for _, stat in grain_crop.disordered_trace.stats.items():
+            stat["basename"] = None
+    assert {
+        grain_number: grain_crop.disordered_trace.stats
+        for grain_number, grain_crop in topostats_object.grain_crops.items()
+    } == snapshot
 
 
 @pytest.mark.skip(reason="Awaiting test to be written 2024-10-15.")
@@ -1543,12 +1518,7 @@ def test_segment_middles() -> None:
 
 @pytest.mark.skip(reason="Awaiting test to be written 2024-10-15.")
 def test_find_connections() -> None:
-    """Test of prep_find_connections()."""
-
-
-@pytest.mark.skip(reason="Awaiting test to be written 2024-10-15.")
-def test_prep_arrays() -> None:
-    """Test of prep_arrays()."""
+    """Test of find_connections()."""
 
 
 @pytest.mark.parametrize(
@@ -1934,6 +1904,7 @@ def test_calculate_dna_width(smoothed_mask: npt.NDArray, pruned_skeleton: npt.ND
 def test_smooth_mask(
     caplog: pytest.LogCaptureFixture,
     disordered_trace: disordered_tracing.disorderedTrace,
+    skeletonize_circular_bool_int: npt.NDArray,
     dilation_iteration: int | None,
     gaussian_sigma: float | int | None,
     hole_area_min_max: tuple[int | None, int | None],
@@ -1943,8 +1914,19 @@ def test_smooth_mask(
     """Test smooth_mask function."""
     caplog.set_level(logging.DEBUG, logger=LOGGER_NAME)
     smoothed_grain = disordered_trace.smooth_mask(
-        disordered_trace.mask, dilation_iteration, gaussian_sigma, hole_area_min_max
+        skeletonize_circular_bool_int, dilation_iteration, gaussian_sigma, hole_area_min_max
     )
 
     assert expected_message in caplog.text
     np.testing.assert_array_equal(smoothed_grain, expected_array)
+
+
+def test_small_skeletons_ignored(
+    topostats_object_small_grain: TopoStats, disordered_tracing_config: dict[str, Any], caplog
+) -> None:
+    """Test that small skeletons < 10 pixels are ignored by checking log for error."""
+    disordered_tracing.trace_image_disordered(
+        topostats_object=topostats_object_small_grain, **disordered_tracing_config
+    )
+    assert f"Grain 0 skeleton < {disordered_tracing_config['min_skeleton_size']}, skipping" in caplog.text
+    assert topostats_object_small_grain.grain_crops[0].disordered_trace is None

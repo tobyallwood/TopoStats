@@ -1,76 +1,52 @@
 """Functions for reading and writing data."""
 
-from __future__ import annotations
-
 import io
 import json
 import logging
 import os
 import pickle as pkl
+import re
 import struct
-from collections.abc import MutableMapping
 from datetime import datetime
-from importlib import resources
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import h5py
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-from AFMReader import asd, gwy, ibw, jpk, spm, topostats
+from AFMReader import asd, gwy, ibw, jpk, spm, stp, top, topostats  # pylint: disable=no-name-in-module
 from numpyencoder import NumpyEncoder
+from packaging.version import parse as parse_version
 from ruamel.yaml import YAML, YAMLError
 
+from topostats import CONFIG_DOCUMENTATION_REFERENCE, TOPOSTATS_BASE_VERSION, TOPOSTATS_COMMIT, __release__, __version__
+from topostats.classes import (
+    DisorderedTrace,
+    GrainCrop,
+    MatchedBranch,
+    Molecule,
+    Node,
+    OrderedTrace,
+    TopoStats,
+    convert_to_dict,
+)
 from topostats.logs.logs import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 
-
-CONFIG_DOCUMENTATION_REFERENCE = """# For more information on configuration and how to use it:
-# https://afm-spm.github.io/TopoStats/main/configuration.html\n"""
-
 # pylint: disable=broad-except
 # pylint: disable=too-many-lines
-
-MutableMappingType = TypeVar("MutableMappingType", bound="MutableMapping")
-
-
-def merge_mappings(map1: MutableMappingType, map2: MutableMappingType) -> MutableMappingType:
-    """
-    Merge two mappings (dictionaries), with priority given to the second mapping.
-
-    Note: Using a Mapping should make this robust to any mapping type, not just dictionaries. MutableMapping was needed
-    as Mapping is not a mutable type, and this function needs to be able to change the dictionaries.
-
-    Parameters
-    ----------
-    map1 : MutableMapping
-        First mapping to merge, with secondary priority.
-    map2 : MutableMapping
-        Second mapping to merge, with primary priority.
-
-    Returns
-    -------
-    dict
-        Merged dictionary.
-    """
-    # Iterate over the second mapping
-    for key, value in map2.items():
-        # If the value is another mapping, then recurse
-        if isinstance(value, MutableMapping):
-            # If the key is not in the first mapping, add it as an empty dictionary before recursing
-            map1[key] = merge_mappings(map1.get(key, {}), value)
-        else:
-            # Else simply add / override the key value pair
-            map1[key] = value
-    return map1
+# pylint: disable=too-many-branches
 
 
 # Sylvia: Ruff says too complex but I think breaking this out would be more complex.
+# pylint: disable=too-many-return-statements
 def dict_almost_equal(dict1: dict, dict2: dict, abs_tol: float = 1e-9):  # noqa: C901
     """
     Recursively check if two dictionaries are almost equal with a given absolute tolerance.
+
+    This should really just be iterative and is an affront to memory usage.
 
     Parameters
     ----------
@@ -86,32 +62,90 @@ def dict_almost_equal(dict1: dict, dict2: dict, abs_tol: float = 1e-9):  # noqa:
     bool
         True if the dictionaries are almost equal, False otherwise.
     """
+    # Ensure both dictionaries share the same keys
     if dict1.keys() != dict2.keys():
         return False
+
+    # Ensure the types of the values are the same
+    for key in dict1:
+        # Sylvia: Pylint complains about calling the type() function in this way, but it is the only way to
+        # ensure that the types of the values in both dictionaries are the same (that I know of).
+        # Replace with better way if you know of one.
+        # pylint: disable=unidiomatic-typecheck
+        if type(dict1[key]) != type(dict2[key]):  # noqa: E721
+            LOGGER.debug(f"Key {key} types not equal: {type(dict1[key])} != {type(dict2[key])}")
+            return False
 
     LOGGER.debug("Comparing dictionaries")
 
     for key in dict1:
         LOGGER.debug(f"Comparing key {key}")
-        if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+        if isinstance(dict1[key], dict):
             if not dict_almost_equal(dict1[key], dict2[key], abs_tol=abs_tol):
                 return False
-        elif isinstance(dict1[key], np.ndarray) and isinstance(dict2[key], np.ndarray):
+        elif isinstance(dict1[key], np.ndarray):
             if not np.allclose(dict1[key], dict2[key], atol=abs_tol):
                 LOGGER.debug(f"Key {key} type: {type(dict1[key])} not equal: {dict1[key]} != {dict2[key]}")
                 return False
-        elif isinstance(dict1[key], float) and isinstance(dict2[key], float):
+        elif isinstance(dict1[key], float):
             # Skip if both values are NaN
             if not (np.isnan(dict1[key]) and np.isnan(dict2[key])):
                 # Check if both values are close
                 if not np.isclose(dict1[key], dict2[key], atol=abs_tol):
                     LOGGER.debug(f"Key {key} type: {type(dict1[key])} not equal: {dict1[key]} != {dict2[key]}")
                     return False
-
+        elif isinstance(dict1[key], list):
+            if not lists_almost_equal(dict1[key], dict2[key], abs_tol=abs_tol):
+                return False
         elif dict1[key] != dict2[key]:
             LOGGER.debug(f"Key {key} not equal: {dict1[key]} != {dict2[key]}")
             return False
 
+    return True
+
+
+def lists_almost_equal(list1: list, list2: list, abs_tol: float = 1e-9) -> bool:
+    """
+    Check if two lists are almost equal with a given absolute tolerance.
+
+    Note: Currently the lists must be flat, the same length and contain only numbers (int or float).
+
+    Parameters
+    ----------
+    list1 : list
+        First list to compare.
+    list2 : list
+        Second list to compare.
+    abs_tol : float
+        Absolute tolerance to check for equality.
+
+    Returns
+    -------
+    bool
+        True if the lists are almost equal, False otherwise.
+
+    Raises
+    ------
+    NotImplementedError
+        If the items in the lists are not of type int or float.
+    """
+    # Check if both lists are the same length and only contain numbers
+    if len(list1) != len(list2):
+        LOGGER.debug(f"Lists not same length: {len(list1)} != {len(list2)}")
+        return False
+    for i, (item1, item2) in enumerate(zip(list1, list2)):
+        if isinstance(item1, int | float | np.int64) and isinstance(item2, int | float | np.int64):
+            if not np.isclose(item1, item2, atol=abs_tol):
+                LOGGER.debug(f"List item {i} not equal: {item1} != {item2}")
+                return False
+        elif isinstance(item1, list) and isinstance(item2, list):
+            if not lists_almost_equal(item1, item2):
+                LOGGER.debug(f"Nested list item {i} not equal: {item1} != {item2}")
+                return False
+        else:
+            raise NotImplementedError(
+                f"Comparison of list items of type {type(item1)} inside a list is not implemented."
+            )
     return True
 
 
@@ -179,6 +213,11 @@ def write_yaml(
         header = f"# {header_message} : {get_date_time()}\n" + CONFIG_DOCUMENTATION_REFERENCE
     else:
         header = f"# Configuration from TopoStats run completed : {get_date_time()}\n" + CONFIG_DOCUMENTATION_REFERENCE
+
+    # Add comment to config with topostats version + commit
+    header += f"# TopoStats version: {TOPOSTATS_BASE_VERSION}\n"
+    header += f"# Commit: {TOPOSTATS_COMMIT}\n"
+
     output_config.write_text(header, encoding="utf-8")
 
     yaml = YAML(typ="safe")
@@ -187,53 +226,6 @@ def write_yaml(
             yaml.dump(config, f)
         except YAMLError as exception:
             LOGGER.error(exception)
-
-
-def write_config_with_comments(args=None) -> None:
-    """
-    Write a sample configuration with in-line comments.
-
-    This function is not designed to be used interactively but can be, just call it without any arguments and it will
-    write a configuration to './config.yaml'.
-
-    Parameters
-    ----------
-    args : Namespace
-        A Namespace object parsed from argparse with values for 'filename'.
-    """
-    filename = "config" if args.filename is None else args.filename
-    output_dir = Path("./") if args.output_dir is None else Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    logger_msg = "A sample configuration has been written to"
-    # If no config or default is requested we load the default_config.yaml
-    if args.config is None or args.config == "default":
-        if args.simple:
-            config_path = resources.files(__package__) / "simple_config.yaml"
-        else:
-            config_path = resources.files(__package__) / "default_config.yaml"
-        config = config_path.read_text()
-    elif args.config == "topostats.mplstyle":
-        config = (resources.files(__package__) / "topostats.mplstyle").read_text()
-        logger_msg = "A sample matplotlibrc parameters file has been written to"
-    # Otherwise we have scope for loading different configs based on the argument, add future dictionaries to
-    # topostats/<sample_type>_config.yaml
-    else:
-        try:
-            config = (resources.files(__package__) / f"{args.config}_config.yaml").read_text()
-        except FileNotFoundError as e:
-            raise UserWarning(f"There is no configuration for samples of type : {args.config}") from e
-
-    if ".yaml" not in str(filename) and ".yml" not in str(filename) and ".mplstyle" not in str(filename):
-        create_config_path = output_dir / f"{filename}.yaml"
-    else:
-        create_config_path = output_dir / filename
-
-    with create_config_path.open("w", encoding="utf-8") as f:
-        f.write(f"# Config file generated {get_date_time()}\n")
-        f.write(f"# {CONFIG_DOCUMENTATION_REFERENCE}")
-        f.write(config)
-    LOGGER.info(f"{logger_msg} : {str(create_config_path)}")
-    LOGGER.info(CONFIG_DOCUMENTATION_REFERENCE)
 
 
 def save_array(array: npt.NDArray, outpath: Path, filename: str, array_type: str) -> None:
@@ -321,20 +313,17 @@ def get_out_path(image_path: str | Path = None, base_dir: str | Path = None, out
     """
     # If image_path is relative and doesn't include base_dir then a ValueError is raised, in which
     # case we just want to append the image_path to the output_dir
+    image_path = Path(image_path)
     try:
         # Remove the filename if there is a suffix, not always the case as
         # get_out_path is called from save_folder_grainstats()
         if image_path.suffix:
-            return output_dir / image_path.relative_to(base_dir).parent / image_path.stem
+            return output_dir / image_path.relative_to(base_dir).parent / image_path.parts[-1]
         return output_dir / image_path.relative_to(base_dir)
     except ValueError:
         if image_path.suffix:
-            return output_dir / image_path.parent / image_path.stem
+            return output_dir / image_path.parent / image_path.parts[-1]
         return Path(str(output_dir) + "/" + str(image_path))
-    # AttributeError is raised if image_path is a string (since it isn't a Path() object with a .suffix)
-    except AttributeError:
-        LOGGER.error("A string form of a Path has been passed to 'get_out_path()' for image_path")
-        raise
 
 
 def find_files(base_dir: str | Path = None, file_ext: str = ".spm") -> list:
@@ -354,10 +343,35 @@ def find_files(base_dir: str | Path = None, file_ext: str = ".spm") -> list:
         List of files found with the extension in the given directory.
     """
     base_dir = Path("./") if base_dir is None else Path(base_dir)
+    if file_ext == ".spm":
+        return list(base_dir.glob("**/*" + file_ext)) + _find_old_bruker_files(base_dir)
     return list(base_dir.glob("**/*" + file_ext))
 
 
-def save_folder_grainstats(
+def _find_old_bruker_files(base_dir: Path) -> list[Path]:
+    r"""
+    Find old Bruker files that have old extensions.
+
+    Older Bruker files have extensions such as ``.001``, ``.002`` rather than ``.spm``. AFMReader can handle these fine
+    but TopoStats needs to include them when finding files.
+
+    Parameters
+    ----------
+    base_dir : Path
+        Directory to search for files.
+
+    Returns
+    -------
+    list[Path]
+        List of files that match the regex ``\.\d+$``.
+    """
+    # Compile regex to match files ending with a period and one or more digits. List comprehension of matches is
+    # returned.
+    OLD_BRUKER_RE = re.compile(r"\.\d+$")
+    return [p for p in base_dir.glob("**/*") if OLD_BRUKER_RE.match(p.suffix)]
+
+
+def save_image_grainstats(
     output_dir: str | Path, base_dir: str | Path, all_stats_df: pd.DataFrame, stats_filename: str
 ) -> None:
     """
@@ -380,21 +394,20 @@ def save_folder_grainstats(
         This only saves the dataframes and does not retain them.
     """
     dirs = set(all_stats_df["basename"].values)
+    if output_dir.stem != "processed":
+        output_dir_processed = Path(str(output_dir)) / "processed"
+        output_dir_processed.mkdir(parents=True, exist_ok=True)
     LOGGER.debug(f"Statistics :\n{all_stats_df}")
     for _dir in dirs:
         LOGGER.debug(f"Statistics ({_dir}) :\n{all_stats_df}")
         try:
-            out_path = get_out_path(Path(_dir), base_dir, output_dir)
-            # Ensure "processed" directory exists at the stem of out_path, creating if needed
-            if out_path.stem != "processed":
-                out_path_processed = out_path / "processed"
-                out_path_processed.mkdir(parents=True, exist_ok=True)
-            all_stats_df[all_stats_df["basename"] == _dir].to_csv(
-                out_path / "processed" / f"folder_{stats_filename}.csv", index=True
-            )
-            LOGGER.info(f"Folder-wise statistics saved to: {str(out_path)}/folder_{stats_filename}.csv")
+            # Ensure "output/processed" directory exists at the stem of out_path, creating if needed
+            out_path = get_out_path(Path(_dir), base_dir, output_dir_processed)
+            out_path.mkdir(parents=True, exist_ok=True)
+            all_stats_df[all_stats_df["basename"] == _dir].to_csv(out_path / f"image_{stats_filename}.csv", index=True)
+            LOGGER.info(f"Image-wise statistics saved to: {str(out_path)}/image_{stats_filename}.csv")
         except TypeError:
-            LOGGER.info(f"No folder-wise statistics for directory {_dir}, no grains detected in any images.")
+            LOGGER.info(f"No image-wise statistics for image {_dir}, no grains detected.")
 
 
 def read_null_terminated_string(open_file: io.TextIOWrapper, encoding: str = "utf-8") -> str:
@@ -594,19 +607,17 @@ class LoadScans:
     ----------
     img_paths : list[str, Path]
         Path to a valid AFM scan to load.
+    config : dict[str, Any]
+        Dictionary of all configuration options.
     channel : str
         Image channel to extract from the scan.
-    extract : str
-        What to extract from ''.topostats'' files, default is ''all'' which loads everything but if using in
-        ''run_topostats'' functions then specific subsets of data are required and this allows just those to be
-        loaded. Options include ''raw'' and ''filter'' at present.
     """
 
     def __init__(
         self,
         img_paths: list[str | Path],
-        channel: str,
-        extract: str = "all",
+        config: dict[str, Any],
+        channel: str | None = None,
     ):
         """
         Initialise the class.
@@ -615,26 +626,24 @@ class LoadScans:
         ----------
         img_paths : list[str | Path]
             Path to a valid AFM scan to load.
+        config : dict[str, Any]
+            Dictionary of all configuration options.
         channel : str
             Image channel to extract from the scan.
-        extract : str
-            What to extract from ''.topostats'' files, default is ''all'' which loads everything but if using in
-            ''run_topostats'' functions then specific subsets of data are required and this allows just those to be
-            loaded. Options include ''raw'' and ''filter'' at present.
         """
         self.img_paths = img_paths
         self.img_path = None
-        self.channel = channel
+        self.channel = config["loading"]["channel"] if channel is None else channel
         self.channel_data = None
-        self.extract = extract
         self.filename = None
         self.suffix = None
         self.image = None
         self.pixel_to_nm_scaling = None
         self.grain_masks = {}
         self.grain_trace_data = {}
-        self.img_dict = {}
+        self.img_dict: dict[str, TopoStats] = {}
         self.MINIMUM_IMAGE_SIZE = 10
+        self.config = config
 
     def load_spm(self) -> tuple[npt.NDArray, float]:
         """
@@ -652,39 +661,49 @@ class LoadScans:
             LOGGER.error(f"File Not Found : {self.img_path}")
             raise
 
-    def load_topostats(self, extract: str = "all") -> dict[str, Any] | tuple[npt.NDArray, float, Any]:
+    def load_topostats(self) -> dict[str, Any]:
         """
-        Load a .topostats file (hdf5 format).
+        Load a ``.topostats`` file (hdf5 format) using AFMReader.
 
-        Loads and extracts the image, pixel to nanometre scaling factor and any grain masks.
-
-        Note that grain masks are stored via self.grain_masks rather than returned due to how we extract information for
-        all other file loading functions.
-
-        Parameters
-        ----------
-        extract : str
-            String of which image (Numpy array) and data to extract, default is 'all' which returns the cleaned
-            (post-Filter) image, `pixel_to_nm_scaling` and all `data`. It is possible to extract image arrays for other
-            stages of processing such as `raw` or 'filter'.
+        AFMReader is general and returns the data as a dictionary. This is converted to ``TopoStasts`` class later when
+        building dictionaries of images.
 
         Returns
         -------
-        dict[str, Any] | tuple[npt.NDArray, float, Any]
-            A dictionary of all previously processed data or tuple containing the image and its pixel to nanometre
-            scaling value. This is contingent on the ''extract'' option.
+        dict[str, Any]
+            A dictionary of all previously processed data and configuration options.
         """
         try:
             LOGGER.debug(f"Loading image from : {self.img_path}")
-            data = topostats.load_topostats(self.img_path)
+            raw_data = topostats.load_topostats(self.img_path)
+            if "topostats_file_version" in raw_data.keys():  # pylint: disable=consider-iterating-dictionary
+                LOGGER.warning(
+                    f"[{raw_data['filename']}] : This '.topostats' is an old format "
+                    f"({raw_data['topostats_file_version']}), only core features are loaded. "
+                    "All trace data has been dropped. If you need access to these please use AFMReader directly."
+                )
+                # Remove trace data, masks and unused variables, may not have all attributes
+                old_keys_to_remove = [
+                    "disordered_traces",
+                    "grain_curvature_stats",
+                    "grain_masks",
+                    "grain_masks",
+                    "grain_trace_data",
+                    "heigh_profiles",
+                    "nodestats",
+                    "ordered_traces",
+                    "splining",
+                    "topostats_file_version",
+                ]
+                for key in old_keys_to_remove:
+                    try:
+                        raw_data.pop(key)
+                    except KeyError:
+                        continue
+            return raw_data
         except FileNotFoundError:
             LOGGER.error(f"File Not Found : {self.img_path}")
             raise
-        # We want everything if performing any step beyond filtering (or explicitly ask for None/"all")
-        if extract in [None, "all", "grains", "grainstats"]:
-            return data
-        # Otherwise we are re-running filtering we want the raw/image_original and scaling
-        return (data["image_original"], data["pixel_to_nm_scaling"])
 
     def load_asd(self) -> tuple[npt.NDArray, float]:
         """
@@ -754,33 +773,70 @@ class LoadScans:
             LOGGER.error(f"File not found : {self.img_path}")
             raise
 
+    def load_top(self) -> tuple[npt.NDArray, float]:
+        """
+        Extract image and pixel to nm scaling from the WsXM .top file.
+
+        Returns
+        -------
+        tuple[npt.NDArray, float]
+            A tuple containing the image and its pixel to nanometre scaling value.
+        """
+        LOGGER.debug(f"Loading image from : {self.img_path}")
+        try:
+            return top.load_top(file_path=self.img_path)
+        except FileNotFoundError:
+            LOGGER.error(f"File not found : {self.img_path}")
+            raise
+
+    def load_stp(self) -> tuple[npt.NDArray, float]:
+        """
+        Extract image and pixel to nm scaling from the WsXM .stp file.
+
+        Returns
+        -------
+        tuple[npt.NDArray, float]
+            A tuple containing the image and its pixel to nanometre scaling value.
+        """
+        LOGGER.debug(f"Loading image from : {self.img_path}")
+        try:
+            return stp.load_stp(file_path=self.img_path)
+        except FileNotFoundError:
+            LOGGER.error(f"File not found : {self.img_path}")
+            raise
+
     def get_data(self) -> None:  # noqa: C901  # pylint: disable=too-many-branches
         """Extract image, filepath and pixel to nm scaling value, and append these to the img_dic object."""
         suffix_to_loader = {
             ".spm": self.load_spm,
             ".jpk": self.load_jpk,
+            ".jpk-qi-image": self.load_jpk,
             ".ibw": self.load_ibw,
             ".gwy": self.load_gwy,
             ".topostats": self.load_topostats,
             ".asd": self.load_asd,
+            ".stp": self.load_stp,
+            ".top": self.load_top,
         }
         for img_path in self.img_paths:
-            self.img_path = img_path
-            self.filename = img_path.stem
-            suffix = img_path.suffix
+            if Path(img_path).is_dir():
+                continue
+            self.img_path = Path(img_path)
+            self.filename = str(Path(img_path).parts[-1])
+            suffix = Path(img_path).suffix
             LOGGER.info(f"Extracting image from {self.img_path}")
             LOGGER.debug(f"File extension : {suffix}")
+
+            OLD_BRUKER_RE = re.compile(r"\.\d+$")
 
             # Check that the file extension is supported
             if suffix in suffix_to_loader:
                 data = None
                 try:
-                    if suffix == ".topostats" and self.extract in (None, "all", "grains", "grainstats"):
-                        data = self.load_topostats(extract=self.extract)
-                        self.image = data["image"]
+                    if suffix == ".topostats":
+                        data = suffix_to_loader[suffix]()
+                        self.image = data["image_original"]
                         self.pixel_to_nm_scaling = data["pixel_to_nm_scaling"]
-                    elif suffix == ".topostats" and self.extract in ("filter", "raw"):
-                        self.image, self.pixel_to_nm_scaling = self.load_topostats(extract=self.extract)
                     else:
                         self.image, self.pixel_to_nm_scaling = suffix_to_loader[suffix]()
                 except Exception as e:
@@ -793,20 +849,30 @@ class LoadScans:
                     if suffix == ".asd":
                         for index, frame in enumerate(self.image):
                             self._check_image_size_and_add_to_dict(image=frame, filename=f"{self.filename}_{index}")
-                    # If we have extracted the image dictionary (only possible with .topostats files) we add that to the
-                    # dictionary
-                    elif data is not None:
-                        data["img_path"] = img_path.with_suffix("")
-                        self.img_dict[self.filename] = self.clean_dict(img_dict=data)
+                    # If we are loading a .topostats we don't check image size, but instead update config, version and
+                    # img_path to the current values and add directly to dictionary
+                    elif suffix == ".topostats":
+                        data["img_path"] = self.img_path.parent / self.filename
+                        data["config"] = self.config
+                        data["topostats_version"] = __version__
+                        self.img_dict[self.filename] = dict_to_topostats(dictionary=data)
+
                     # Otherwise check the size and add image to dictionary
                     else:
                         self._check_image_size_and_add_to_dict(image=self.image, filename=self.filename)
+            elif OLD_BRUKER_RE.match(suffix):
+                # This is an old Bruker file, treat as normal.
+                LOGGER.debug(f"Old Bruker file detected, treating as {suffix_to_loader['.spm'].__name__}")
+                try:
+                    self.image, self.pixel_to_nm_scaling = self.load_spm()
+                except FileNotFoundError:
+                    LOGGER.error(f"File not found : {self.img_path}")
+                    raise
+                self._check_image_size_and_add_to_dict(image=self.image, filename=self.filename)
             else:
-                raise ValueError(
-                    f"File type {suffix} not yet supported. Please make an issue at \
+                raise ValueError(f"File type {suffix} not yet supported. Please make an issue at \
                 https://github.com/AFM-SPM/TopoStats/issues, or email topostats@sheffield.ac.uk to request support for \
-                this file type."
-                )
+                this file type.")
 
     def _check_image_size_and_add_to_dict(self, image: npt.NDArray, filename: str) -> None:
         """
@@ -842,57 +908,21 @@ class LoadScans:
         filename : str
             The name of the file.
         """
-        self.img_dict[filename] = {
-            "filename": filename,
-            "img_path": self.img_path.with_name(filename),
-            "pixel_to_nm_scaling": self.pixel_to_nm_scaling,
-            "image_original": image,
-            "image": None,
-            "grain_masks": self.grain_masks,
-            "grain_trace_data": self.grain_trace_data,
-        }
-
-    def clean_dict(self, img_dict: dict[str, Any]) -> dict[str, Any]:
-        """
-        If we are loading .topostats files for reprocessing we already have the dictionary structure.
-
-        We therefore need to extract just the information that is required for the stage requested and remove everything
-        else.
-
-        Parameters
-        ----------
-        img_dict : dict[str, Any]
-            Original image dictionary from which data is to be extracted.
-
-        Returns
-        -------
-        dict[str, Any]
-            Returns the image dictionary with keys/values removed appropriate to the extraction stage.
-        """
-        if self.extract in ["grains", "grainstats"]:
-            img_dict.pop("disordered_traces")
-            img_dict.pop("grain_curvature_stats")
-            img_dict.pop("grain_masks")
-            img_dict.pop("height_profiles")
-            img_dict.pop("nodestats")
-            img_dict.pop("ordered_traces")
-            img_dict.pop("splining")
-            return img_dict
-        if self.extract in ["disordered_tracing", "nodestats", "ordered_tracing"]:
-            img_dict.pop("disordered_traces")
-            img_dict.pop("grain_curvature_stats")
-            img_dict.pop("nodestats")
-            img_dict.pop("ordered_tracing")
-            img_dict.pop("splining")
-            return img_dict
-        if self.extract in ["splining"]:
-            img_dict.pop("splining")
-            img_dict.pop("grain_curvature_stats")
-            return img_dict
-        return img_dict
+        self.img_dict[filename] = TopoStats(
+            grain_crops=None,
+            filename=filename,
+            pixel_to_nm_scaling=self.pixel_to_nm_scaling,
+            topostats_version=__version__,
+            img_path=self.img_path.with_name(filename),
+            image=None,
+            image_original=image,
+            config=self.config,
+        )
 
 
-def dict_to_hdf5(open_hdf5_file: h5py.File, group_path: str, dictionary: dict) -> None:
+def dict_to_hdf5(  # noqa: C901 # pylint: disable=too-many-statements
+    open_hdf5_file: h5py.File, group_path: str, dictionary: dict
+) -> None:
     """
     Recursively save a dictionary to an open hdf5 file.
 
@@ -906,33 +936,65 @@ def dict_to_hdf5(open_hdf5_file: h5py.File, group_path: str, dictionary: dict) -
         A dictionary of the data to save.
     """
     for key, item in dictionary.items():
-        # LOGGER.info(f"Saving key: {key}")
-
+        LOGGER.debug(f"Saving key: {key}")
         if item is None:
             LOGGER.debug(f"Item '{key}' is None. Skipping.")
         # Make sure the key is a string
         key = str(key)
 
         # Check if the item is a known datatype
-        # Ruff wants us to use the pipe operator here but it isn't supported by python 3.9
-        if isinstance(item, (list, str, int, float, np.ndarray, Path, dict)):  # noqa: UP038
+        if isinstance(
+            item,
+            (
+                list
+                | str
+                | int
+                | float
+                | np.ndarray
+                | Path
+                | dict
+                | DisorderedTrace
+                | GrainCrop
+                | MatchedBranch
+                | Molecule
+                | Node
+                | OrderedTrace
+            ),
+        ):  # noqa: UP038
+            # Exclude the plotting dictionary configuration, its excessive and users rarely tinker with it
+            if key == "plot_dict":
+                continue
             # Lists need to be converted to numpy arrays
             if isinstance(item, list):
-                item = np.array(item)
-                open_hdf5_file[group_path + key] = item
-            # Strings need to be encoded to bytes
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                if any(x is None for x in item):
+                    item = np.array([np.nan if x is None else x for x in item])
+                open_hdf5_file.create_dataset(name=group_path + key, data=item, compression="gzip")
+            # Strings need to be encoded to bytes, but can not be compressed
             elif isinstance(item, str):
-                open_hdf5_file[group_path + key] = item.encode("utf8")
-            # Integers, floats and numpy arrays can be added directly to the hdf5 file
-            # Ruff wants us to use the pipe operator here but it isn't supported by python 3.9
-            elif isinstance(item, (int, float, np.ndarray)):  # noqa: UP038
-                open_hdf5_file[group_path + key] = item
-            # Path objects need to be encoded to bytes
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                open_hdf5_file.create_dataset(name=group_path + key, data=item.encode("utf8"))
+            # Integers, floats are added directly to the hdf5 file
+            elif isinstance(item, (int, float)):  # noqa: UP038
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                open_hdf5_file.create_dataset(name=group_path + key, data=item)
+            # Numpy arrays can be compressed added directly to the hdf5 file
+            elif isinstance(item, np.ndarray):  # noqa: UP038
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                open_hdf5_file.create_dataset(name=group_path + key, data=item, compression="gzip")
+            # Path objects need to be converted to strings which can not be compressed
             elif isinstance(item, Path):
-                open_hdf5_file[group_path + key] = str(item).encode("utf8")
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                open_hdf5_file.create_dataset(name=group_path + key, data=str(item).encode("utf8"))
             # Dictionaries need to be recursively saved
             elif isinstance(item, dict):  # a sub-dictionary, so we need to recurse
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
                 dict_to_hdf5(open_hdf5_file, group_path + key + "/", item)
+            # All classes defined in the classes submodule must be recursively saved
+            elif isinstance(item, (GrainCrop | OrderedTrace | Node | DisorderedTrace | MatchedBranch | Molecule)):
+                LOGGER.debug(f"[dict_to_hdf5] {key} is of type : {type(item)}")
+                dict_to_hdf5(open_hdf5_file, group_path + key + "/", convert_to_dict(item))
+
         else:  # attempt to save an item that is not a numpy array or a dictionary
             try:
                 open_hdf5_file[group_path + key] = item
@@ -974,40 +1036,126 @@ def hdf5_to_dict(open_hdf5_file: h5py.File, group_path: str) -> dict:
     return data_dict
 
 
-def save_topostats_file(output_dir: Path, filename: str, topostats_object: dict) -> None:
+def save_topostats_file(output_dir: Path, topostats_object: TopoStats, topostats_version: str = __release__) -> None:
     """
-    Save a topostats dictionary object to a .topostats (hdf5 format) file.
+    Save ''TopoStats'' object to a ''.topostats'' (hdf5 format) file.
 
     Parameters
     ----------
     output_dir : Path
         Directory to save the .topostats file in.
-    filename : str
-        File name of the .topostats file.
     topostats_object : dict
         Dictionary of the topostats data to save. Must include a flattened image and pixel to nanometre scaling
         factor. May also include grain masks.
+    topostats_version : str
+        Version to save as, defaults to ''__release__''.
     """
-    LOGGER.info(f"[{filename}] : Saving image to .topostats file")
-
-    if ".topostats" not in filename:
-        save_file_path = output_dir / f"{filename}.topostats"
+    LOGGER.info(f"[{topostats_object.filename}] : Saving image to .topostats file")
+    if ".topostats" not in topostats_object.filename:
+        # Remove everything after the last period in filename)
+        filename = topostats_object.filename.rsplit(".", 1)[0]
+        save_file_path = Path(output_dir) / f"{filename}.topostats"
     else:
-        save_file_path = output_dir / filename
-
+        save_file_path = Path(output_dir) / topostats_object.filename
     with h5py.File(save_file_path, "w") as f:
         # It may be possible for topostats_object["image"] to be None.
         # Make sure that this is not the case.
-        if topostats_object["image"] is not None:
-            topostats_object["topostats_file_version"] = 0.2
+        if isinstance(topostats_object, dict) and topostats_object["image"] is not None:
             # Recursively save the topostats object dictionary to the .topostats file
-            dict_to_hdf5(open_hdf5_file=f, group_path="/", dictionary=topostats_object)
+            if parse_version(topostats_version) < parse_version("2.4"):
+                topostats_object["topostats_file_version"] = topostats_version
+                dict_to_hdf5(open_hdf5_file=f, group_path="/", dictionary=topostats_object)
+        elif isinstance(topostats_object, TopoStats):
+            topostats_object.topostats_version = topostats_version
+            dict_to_hdf5(open_hdf5_file=f, group_path="/", dictionary=convert_to_dict(topostats_object))
 
         else:
             raise ValueError(
-                "TopoStats object dictionary does not contain an 'image'. \
-                 TopoStats objects must be saved with a flattened image."
+                "TopoStats object dictionary does not contain an 'image'. "
+                "TopoStats objects must be saved with a flattened image."
             )
+
+
+def dict_to_topostats(  # noqa: C901 # pylint: disable=too-many-locals,too-many-nested-blocks
+    dictionary: dict[str, Any],
+) -> TopoStats:
+    """
+    Convert a dictionary, typically loaded from HDF5 ``.topostats`` file, to TopoStats object.
+
+    Parameters
+    ----------
+    dictionary : dict[str, Any]
+        Dictionary of TopoStats data. This will typically have been loaded from the HDF5 ``.topostats`` file using
+        `AFMReader <https://afm-spm.github.io/AFMReader>`__.
+
+    Returns
+    -------
+    TopoStats
+        A TopoStat object.
+    """
+    if "grain_crops" in dictionary.keys() and dictionary["grain_crops"] is not None:
+        grain_crops = {}
+        for grain, crop in dictionary["grain_crops"].items():
+            image = crop["image"] if "image" in crop.keys() else None
+            mask = crop["mask"] if "mask" in crop.keys() else None
+            padding = int(crop["padding"]) if "padding" in crop.keys() else None
+            bbox = crop["bbox"] if "bbox" in crop.keys() else None
+            pixel_to_nm_scaling = crop["pixel_to_nm_scaling"] if "pixel_to_nm_scaling" in crop.keys() else None
+            filename = crop["filename"] if "filename" in crop.keys() else None
+            skeleton = crop["skeleton"] if "skeleton" in crop.keys() else None
+            height_profiles = crop["height_profiles"] if "height_profiles" in crop.keys() else None
+            stats = crop["stats"] if "stats" in crop.keys() else None
+            disordered_trace = (
+                DisorderedTrace(**crop["disordered_trace"]) if "disordered_trace" in crop.keys() else None
+            )
+            if "nodes" in crop.keys() and crop["nodes"] is not None:
+                nodes = {}
+                for node, node_data in crop["nodes"].items():
+                    nodes[node] = Node(**node_data)
+            else:
+                nodes = None
+            ordered_trace = OrderedTrace(**crop["ordered_trace"]) if "ordered_trace" in crop.keys() else None
+            threshold_method = crop["threshold_method"] if "threshold_method" in crop.keys() else None
+            thresholds = crop["thresholds"] if "thresholds" in crop.keys() else None
+            grain_crops[grain] = GrainCrop(
+                image=image,
+                mask=mask,
+                padding=padding,
+                bbox=bbox,
+                pixel_to_nm_scaling=pixel_to_nm_scaling,
+                filename=filename,
+                skeleton=skeleton,
+                height_profiles=height_profiles,
+                stats=stats,
+                disordered_trace=disordered_trace,
+                nodes=nodes,
+                ordered_trace=ordered_trace,
+                threshold_method=threshold_method,
+                thresholds=thresholds,
+            )
+    else:
+        grain_crops = None
+    full_mask_tensor = dictionary["full_mask_tensor"] if "full_mask_tensor" in dictionary.keys() else None
+    config = dictionary["config"] if "config" in dictionary.keys() else None
+    # We have to handle old (topostats_file_version) and new (topostats_version) keys and make sure they are str
+    topostats_version = (
+        str(dictionary["topostats_file_version"])
+        if "topostats_file_version" in dictionary.keys()
+        else str(dictionary["topostats_version"])
+    )
+    image_name = Path(dictionary["filename"]).stem
+    return TopoStats(
+        grain_crops=grain_crops,
+        filename=dictionary["filename"],
+        image_name=image_name,
+        pixel_to_nm_scaling=dictionary["pixel_to_nm_scaling"],
+        img_path=dictionary["img_path"],
+        image=dictionary["image"],
+        image_original=dictionary["image_original"],
+        topostats_version=str(topostats_version),
+        full_mask_tensor=full_mask_tensor,
+        config=config,
+    )
 
 
 def save_pkl(outfile: Path, to_pkl: dict) -> None:
@@ -1019,7 +1167,7 @@ def save_pkl(outfile: Path, to_pkl: dict) -> None:
     outfile : Path
         Path and filename to save pickle to.
     to_pkl : dict
-        Object to be picled.
+        Object to be pickled.
     """
     with outfile.open(mode="wb", encoding=None) as f:
         pkl.dump(to_pkl, f)
@@ -1041,29 +1189,22 @@ def load_pkl(infile: Path) -> Any:
 
     Examples
     --------
-    >>> from pathlib import Path
-    >>> from topostats.io import load_plots
+    from pathlib import Path
 
-    >>> pkl_path = "output/distribution_plots.pkl"
-    >>> my_plots = load_pkl(pkl_path)
+    from topostats.io import load_plots
 
-    Show the type of my_plots which is a dictionary of nested dictionaries
-
-    >>> type(my_plots)
-
-    Show the keys are various levels of nesting.
-
-    >>> my_plots.keys()
-    >>> my_plots["area"].keys()
-    >>> my_plots["area"]["dist"].keys()
-
-    Get the figure and axis object for a given metrics distribution plot
-
-    >>> figure, axis = my_plots["area"]["dist"].values()
-
-    Get the figure and axis object for a given metrics violin plot
-
-    >>> figure, axis = my_plots["area"]["violin"].values()
+    pkl_path = "output/distribution_plots.pkl"
+    my_plots = load_pkl(pkl_path)
+    # Show the type of my_plots which is a dictionary of nested dictionaries
+    type(my_plots)
+    # Show the keys are various levels of nesting.
+    my_plots.keys()
+    my_plots["area"].keys()
+    my_plots["area"]["dist"].keys()
+    # Get the figure and axis object for a given metrics distribution plot
+    figure, axis = my_plots["area"]["dist"].values()
+    # Get the figure and axis object for a given metrics violin plot
+    figure, axis = my_plots["area"]["violin"].values()
     """
     with infile.open("rb", encoding=None) as f:
         return pkl.load(f)  # noqa: S301
@@ -1090,3 +1231,90 @@ def dict_to_json(data: dict, output_dir: str | Path, filename: str | Path, inden
     output_file = output_dir / filename
     with output_file.open("w") as f:
         json.dump(data, f, indent=indent, cls=NumpyEncoder)
+
+
+def write_csv(
+    df: pd.DataFrame,
+    dataset: str,
+    names: list[str] | None,
+    index: list[str],
+    output_dir: str | Path,
+    base_dir: str | Path,
+) -> pd.DataFrame:
+    """
+    Write summary statistics files to CSV.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe to write to CSV.
+    dataset : str
+        Type of dataframe, valid values are ``grain_stats``, ``matched_branch_stats``, ``branch_statistics`` or
+        ``mol_stats``.
+    names : list[str], optional
+        List of names to rename current index with.
+    index : list[str]
+        List of columns to set index to.
+    output_dir : str | Path
+        Output directory.
+    base_dir : str | Path
+        Base directory.
+
+    Returns
+    -------
+    pd.DataFrame
+        Pandas dataframe with index renamed and reset.
+    """
+    if dataset not in {"grain_stats", "matched_branch_stats", "branch_statistics", "mol_stats"}:
+        raise ValueError(
+            f"Invalid dataset {dataset}, valid datasets for writing to CSV are "
+            "'grain_stats', 'matched_branch_stats', 'branch_statistics', 'mol_stats'."
+        )
+    dataset_to_csv = {
+        "grain_stats": "grain_statistics.csv",
+        "matched_branch_stats": "matched_branch_statistics.csv",
+        "branch_statistics": "branch_statistics.csv",
+        "mol_stats": "molecule_statistics.csv",
+    }
+    # Set index names
+    df.index.set_names(names, inplace=True)
+    # Reset index
+    if dataset == "mol_stats":
+        df.reset_index(drop=True, inplace=True)
+    else:
+        df.reset_index(inplace=True)
+    # Set index to required columns
+    df.set_index(index, inplace=True)
+    # Write to CSV
+    df.to_csv(Path(output_dir) / dataset_to_csv[dataset], index=True)
+    # Write statistics on per-folder basis
+    save_image_grainstats(output_dir=output_dir, base_dir=base_dir, all_stats_df=df, stats_filename=dataset)
+    # Return dataframe with index reset
+    df.reset_index(inplace=True)
+    return df
+
+
+def extract_height_profiles(
+    topostats_object_all: dict[str, TopoStats],
+    output_dir: str | Path,
+    filename: str = "height_profiles.json",
+) -> None:
+    """
+    Write height profiles from all grains across all processed images to JSON.
+
+    Parameters
+    ----------
+    topostats_object_all : dict[str, TopoStats]
+        Dictionary of processed TopoStats objects.
+    output_dir : str | Path
+        Path to save JSON to.
+    filename : str
+        Name of output file, default is ``height_profile.json``.
+    """
+    height_profile_all = {}
+    for image, topostats_object in topostats_object_all.items():
+        height_profile_all[image] = {}
+        for grain_number, grain_crop in topostats_object.grain_crops.items():
+            height_profile_all[image][grain_number] = grain_crop.height_profiles
+    dict_to_json(data=height_profile_all, output_dir=output_dir, filename=filename)
+    LOGGER.info(f"Saved all height profiles to {output_dir}/{filename}.")

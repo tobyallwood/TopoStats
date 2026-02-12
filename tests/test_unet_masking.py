@@ -1,14 +1,18 @@
 """Test unet masking methods."""
 
-from __future__ import annotations
-
 from unittest.mock import MagicMock
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
-from topostats.unet_masking import dice_loss, iou_loss, make_bounding_box_square, pad_bounding_box, predict_unet
+from topostats.unet_masking import (
+    dice_loss,
+    iou_loss,
+    make_bounding_box_square,
+    pad_bounding_box_cutting_off_at_image_bounds,
+    predict_unet,
+)
 
 # pylint: disable=too-many-positional-arguments
 
@@ -20,7 +24,11 @@ from topostats.unet_masking import dice_loss, iou_loss, make_bounding_box_square
             np.array([[0, 0], [0, 0]]), np.array([[0, 0], [0, 0]]).astype(np.float32), 1e-5, 0.0, id="perfect match"
         ),
         pytest.param(
-            np.array([[1, 1], [1, 1]]), np.array([[0, 0], [0, 0]]).astype(np.float32), 1e-5, 1.0, id="complete mismatch"
+            np.array([[1, 1], [1, 1]]),
+            np.array([[0, 0], [0, 0]]).astype(np.float32),
+            1e-5,
+            1.0,
+            id="complete mismatch",
         ),
         pytest.param(
             np.array([[1, 0], [0, 0]]).astype(np.float32),
@@ -160,10 +168,10 @@ def test_predict_unet(mock_model_5_by_5_single_class: MagicMock) -> None:
         pytest.param(4, 4, 8, 6, (10, 10), (4, 3, 8, 7), id="free space double min col decrease, max col increase"),
         pytest.param(4, 4, 6, 8, (10, 10), (3, 4, 7, 8), id="free space double min row decrease, max row increase"),
         pytest.param(1, 1, 6, 2, (10, 10), (1, 0, 6, 5), id="constrained left"),
-        pytest.param(1, 6, 7, 8, (10, 10), (1, 3, 7, 9), id="constrained right"),
+        pytest.param(1, 7, 7, 9, (10, 10), (1, 4, 7, 10), id="constrained right"),
         pytest.param(1, 1, 2, 6, (10, 10), (0, 1, 5, 6), id="constrained top"),
-        pytest.param(6, 1, 8, 7, (10, 10), (3, 1, 9, 7), id="constrained bottom"),
-        pytest.param(117, 20, 521, 603, (608, 608), (24, 20, 607, 603), id="constrained top and bottom"),
+        pytest.param(7, 1, 9, 7, (10, 10), (4, 1, 10, 7), id="constrained bottom"),
+        pytest.param(117, 20, 521, 603, (608, 608), (25, 20, 608, 603), id="constrained top and bottom"),
         pytest.param(
             1,
             1,
@@ -219,5 +227,7 @@ def test_pad_bounding_box(
     expected_indices,
 ) -> None:
     """Test the pad_bounding_box method."""
-    result = pad_bounding_box(crop_min_row, crop_min_col, crop_max_row, crop_max_col, image_shape, padding)
+    result = pad_bounding_box_cutting_off_at_image_bounds(
+        crop_min_row, crop_min_col, crop_max_row, crop_max_col, image_shape, padding
+    )
     assert result == expected_indices

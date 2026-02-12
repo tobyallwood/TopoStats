@@ -1,6 +1,5 @@
 """Test the utils module."""
 
-import logging
 from pathlib import Path
 
 import numpy as np
@@ -8,14 +7,13 @@ import numpy.typing as npt
 import pytest
 
 from topostats.utils import (
-    LOGGER_NAME,
     bound_padded_coordinates_to_image,
     convert_path,
     convolve_skeleton,
     create_empty_dataframe,
+    flatten_multi_class_tensor,
     get_thresholds,
-    update_config,
-    update_plotting_config,
+    update_background_class,
 )
 
 THRESHOLD_OPTIONS = {
@@ -34,143 +32,70 @@ def test_convert_path(tmp_path: Path) -> None:
     assert tmp_path == converted_path
 
 
-def test_update_config(caplog) -> None:
-    """Test updating configuration."""
-    caplog.set_level(logging.DEBUG, LOGGER_NAME)
-    sample_config = {"a": 1, "b": 2, "c": "something", "base_dir": "here", "output_dir": "there"}
-    new_values = {"c": "something new"}
-    updated_config = update_config(sample_config, new_values)
-
-    assert isinstance(updated_config, dict)
-    assert "Updated config config[c] : something > something new" in caplog.text
-    assert updated_config["c"] == "something new"
-
-
-@pytest.mark.parametrize(
-    ("image_name", "core_set", "title", "zrange"),
-    [
-        pytest.param("extracted_channel", False, "Raw Height", [0, 3], id="Non-binary image, not in core, with title"),
-        pytest.param("z_threshed", True, "Height Thresholded", [0, 3], id="Non-binary image, in core, with title"),
-        pytest.param(
-            "grain_mask", False, "", [None, None], id="Binary image, not in core, set no title"
-        ),  # binary image
-        pytest.param(
-            "grain_mask_image", False, "", [0, 3], id="Non-binary image, not in core, set no title"
-        ),  # non-binary image
-    ],
-)
-def test_update_plotting_config(
-    process_scan_config: dict, image_name: str, core_set: bool, title: str, zrange: tuple
-) -> None:
-    """Ensure values are added to each image in plot_dict."""
-    process_scan_config["plotting"] = update_plotting_config(process_scan_config["plotting"])
-    assert process_scan_config["plotting"]["plot_dict"][image_name]["core_set"] == core_set
-    # Only check titles for images that have titles. grain_image, grain_mask, grain_mask_image don't
-    # have titles since they're created dynamically.
-    if title in ["extracted_channel", "z_threshed"]:
-        assert process_scan_config["plotting"]["plot_dict"][image_name]["title"] == title
-    # Ensure that both types (binary, non-binary) of image have the correct z-ranges
-    # ([None, None] for binary, user defined for non-binary)
-    assert process_scan_config["plotting"]["plot_dict"][image_name]["zrange"] == zrange
-
-
-@pytest.mark.parametrize(
-    ("plotting_config", "target_config"),
-    [
-        pytest.param(
-            {
-                "run": True,
-                "savefig_dpi": None,
-                "pixel_interpolation": None,
-                "plot_dict": {
-                    "extracted_channel": {
-                        "filename": "00-raw_heightmap",
-                        "image_type": "non-binary",
-                        "core_set": False,
-                        "savefig_dpi": 100,
-                    }
-                },
-            },
-            {
-                "run": True,
-                "savefig_dpi": None,
-                "pixel_interpolation": None,
-                "plot_dict": {
-                    "extracted_channel": {
-                        "filename": "00-raw_heightmap",
-                        "image_type": "non-binary",
-                        "savefig_dpi": 100,
-                        "core_set": False,
-                        "pixel_interpolation": None,
-                    }
-                },
-            },
-            id="DPI None in main, extracted channel DPI should stay at 100",
-        ),
-        pytest.param(
-            {
-                "run": True,
-                "savefig_dpi": 600,
-                "pixel_interpolation": None,
-                "plot_dict": {
-                    "extracted_channel": {
-                        "filename": "00-raw_heightmap",
-                        "image_type": "non-binary",
-                        "savefig_dpi": 100,
-                        "core_set": False,
-                    }
-                },
-            },
-            {
-                "run": True,
-                "savefig_dpi": 600,
-                "pixel_interpolation": None,
-                "plot_dict": {
-                    "extracted_channel": {
-                        "filename": "00-raw_heightmap",
-                        "image_type": "non-binary",
-                        "savefig_dpi": 600,
-                        "core_set": False,
-                        "pixel_interpolation": None,
-                    }
-                },
-            },
-            id="DPI 600 in main, extracted channel DPI should update to 600",
-        ),
-    ],
-)
-def test_udpate_plotting_config_adding_required_options(plotting_config: dict, target_config: dict, caplog) -> None:
-    """Only updates plotting_dict parameters from parent plotting config if value is not None."""
-    caplog.set_level(logging.DEBUG, LOGGER_NAME)
-    update_plotting_config(plotting_config)
-    assert plotting_config == target_config
-    if plotting_config["savefig_dpi"] == 600:
-        assert "100 > 600" in caplog.text
-
-
 def test_get_thresholds_otsu(image_random: np.ndarray) -> None:
     """Test of get_thresholds() method otsu threshold."""
     thresholds = get_thresholds(image=image_random, threshold_method="otsu", **THRESHOLD_OPTIONS)
 
     assert isinstance(thresholds, dict)
-    assert thresholds == {"above": 0.8466799787547299}
+    assert thresholds == {"above": [0.8466799787547299]}
 
 
-def test_get_thresholds_stddev(image_random: np.ndarray) -> None:
+@pytest.mark.parametrize(
+    ("threshold_config", "expected_thresholds"),
+    [
+        pytest.param(
+            {
+                "above": [1.0],
+                "below": [10.0],
+            },
+            {"below": [-2.3866804917165663], "above": [0.7886033762450778]},
+        ),
+        pytest.param(
+            {
+                "above": [1.0, 1.5],
+                "below": [10.0],
+            },
+            {"below": [-2.3866804917165663], "above": [0.7886033762450778, 0.9329344611524253]},
+        ),
+    ],
+)
+def test_get_thresholds_stddev(
+    image_random: np.ndarray,
+    threshold_config: dict[str, list[float]],
+    expected_thresholds: dict[str, list[float]],
+) -> None:
     """Test of get_thresholds() method with mean threshold."""
-    thresholds = get_thresholds(image=image_random, threshold_method="std_dev", **THRESHOLD_OPTIONS)
+    thresholds = get_thresholds(image=image_random, threshold_method="std_dev", threshold_std_dev=threshold_config)
     assert isinstance(thresholds, dict)
-    assert thresholds == {"below": -2.3866804917165663, "above": 0.7886033762450778}
-
-    with pytest.raises(TypeError):
-        thresholds = get_thresholds(image=image_random, threshold_method="std_dev")
+    assert thresholds == expected_thresholds
 
 
-def test_get_thresholds_absolute(image_random: np.ndarray) -> None:
+@pytest.mark.parametrize(
+    ("threshold_config", "expected_thresholds"),
+    [
+        pytest.param(
+            {
+                "above": [1.5],
+                "below": [-1.5],
+            },
+            {"below": [-1.5], "above": [1.5]},
+        ),
+        pytest.param(
+            {
+                "above": [1.5, 2.0],
+                "below": [-1.5],
+            },
+            {"below": [-1.5], "above": [1.5, 2.0]},
+        ),
+    ],
+)
+def test_get_thresholds_absolute(
+    image_random: np.ndarray, threshold_config: dict[str, list[float]], expected_thresholds: dict[str, list[float]]
+) -> None:
     """Test of get_thresholds() method with absolute threshold."""
-    thresholds = get_thresholds(image=image_random, threshold_method="absolute", **THRESHOLD_OPTIONS)
+    thresholds = get_thresholds(image=image_random, threshold_method="absolute", absolute=threshold_config)
     assert isinstance(thresholds, dict)
-    assert thresholds == {"above": 1.5, "below": -1.5}
+    assert thresholds == expected_thresholds
 
 
 def test_get_thresholds_type_error(image_random: np.ndarray) -> None:
@@ -186,27 +111,28 @@ def test_get_thresholds_value_error(image_random: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    ("column_set", "index_col", "n_columns", "columns_check"),
+    ("column_set", "n_columns", "columns_check"),
     [
-        pytest.param("grainstats", "grain_number", 26, {"image", "basename", "area"}, id="Empty grainstats dataframe"),
+        pytest.param("grainstats", 30, {"image", "grain_number", "basename", "area"}, id="Empty grainstats dataframe"),
         pytest.param(
             "disordered_tracing_statistics",
-            "index",
-            12,
+            13,
             {"connected_segments", "mean_pixel_value", "stdev_pixel_value"},
             id="Empty disordered_tracing_statistics dataframe",
         ),
         pytest.param(
-            "mol_statistics", "molecule_number", 7, {"image", "basename", "area"}, id="Empty mol_statistics dataframe"
+            "mol_statistics",
+            8,
+            {"image", "grain_number", "basename", "area"},
+            id="Empty mol_statistics dataframe",
         ),
     ],
 )
-def test_create_empty_dataframe(column_set: str, index_col: str, n_columns: int, columns_check: set) -> None:
+def test_create_empty_dataframe(column_set: str, n_columns: int, columns_check: set) -> None:
     """Test the empty dataframes are created correctly."""
-    empty_df = create_empty_dataframe(column_set, index_col)
+    empty_df = create_empty_dataframe(column_set=column_set)
 
-    assert empty_df.index.name == index_col
-    assert index_col not in empty_df.columns
+    assert empty_df.index.name is None
     assert empty_df.shape == (0, n_columns)
     assert columns_check.intersection(empty_df.columns)
 
@@ -475,7 +401,6 @@ def test_bound_padded_coordinates_to_image(image: npt.NDArray, padding: int, exp
 def test_convolve_skeleton(skeleton: npt.NDArray, target: npt.NDArray) -> None:
     """Test convolve_skeleton() function."""
     skeleton_convolved = convolve_skeleton(skeleton)
-    print(f"{skeleton_convolved=}")
     np.testing.assert_array_equal(skeleton_convolved, target)
 
 
@@ -698,3 +623,126 @@ def test_convolve_skeleton_random(skeleton: npt.NDArray, target: npt.NDArray, re
 # @pytest.mark.parametrize()
 def test_coords2_img() -> None:
     """Test coords2_img() function."""
+
+
+@pytest.mark.parametrize(
+    ("grain_mask_tensor", "expected"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 1, 0],
+                        [0, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                    ],
+                    [
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 1, 1, 1, 0],
+                        [0, 1, 1, 1, 0],
+                    ],
+                ]
+            ),
+            np.array(
+                [
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                ],
+                dtype=np.bool_,
+            ),
+            id="two layer tensor",
+            marks=pytest.mark.xfail(reason="ns-rse unsure what the expected should be here get 2x5x5 back?"),
+        ),
+    ],
+)
+def test_update_background_class(grain_mask_tensor: npt.NDArray, expected: npt.NDArray) -> None:
+    """Test updating background classes."""
+    np.testing.assert_array_equal(update_background_class(grain_mask_tensor), expected)
+
+
+@pytest.mark.parametrize(
+    ("grain_mask_tensor", "expected"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [
+                        [0, 1, 1, 1, 0],
+                        [0, 1, 1, 1, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                    ],
+                    [
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 1, 1, 1, 0],
+                        [0, 1, 1, 1, 0],
+                    ],
+                ]
+            ),
+            np.array(
+                [
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                ],
+                dtype=np.bool_,
+            ),
+            id="two layer tensor",
+            marks=pytest.mark.xfail(reason="get a 2x5 array back?"),
+        ),
+    ],
+)
+def test_flatten_multi_class_tensor(grain_mask_tensor: npt.NDArray, expected: npt.NDArray) -> None:
+    """Test flattening a multi-class tensor."""
+    np.testing.assert_array_equal(flatten_multi_class_tensor(grain_mask_tensor), expected)
+
+
+@pytest.mark.parametrize(
+    ("grain_mask_tensor"),
+    [
+        pytest.param(
+            np.array(
+                [
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 1, 1, 0],
+                ],
+                dtype=np.bool_,
+            ),
+            id="single 2d tensor",
+        ),
+    ],
+)
+def test_flatten_multi_class_tensor_assert_error(grain_mask_tensor: npt.NDArray) -> None:
+    """Test error is raised if tensor that does not have three dimensions is passed for flattening."""
+    with pytest.raises(AssertionError):
+        flatten_multi_class_tensor(grain_mask_tensor)
+
+
+# @pytest.mark.parametrize(
+#     ("graincrops", "image_shape", "expected"),
+#     [
+#         pytest.param(
+#             {GrainCrop(), GrainCrop()}, (30, 30, 3), id="", marks=pytest.mark.skip("awaiting test development")
+#         ),
+#     ],
+# )
+# def test_construct_full_mask_from_graincrops(
+#     graincrops: dict[int, GrainCrop], image_shape: tuple[int, int, int], expected: npt.NDArray[np.bool_]
+# ) -> None:
+#     """Test updating background classes."""
+#     pass

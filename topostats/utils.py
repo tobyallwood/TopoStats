@@ -1,29 +1,28 @@
 """Utilities."""
 
-from __future__ import annotations
-
 import logging
-from argparse import Namespace
-from collections import defaultdict
 from pathlib import Path
-from pprint import pformat
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from scipy.ndimage import convolve
 
+# from topostats.classes import GrainCrop
 from topostats.logs.logs import LOGGER_NAME
 from topostats.thresholds import threshold
 
 LOGGER = logging.getLogger(LOGGER_NAME)
-
 
 COLUMN_SETS = {
     "grainstats": (
         "image",
         "basename",
         "grain_number",
+        "class_number",
+        "class_name",
+        "subgrain_number",
         "area",
         "area_cartesian_bbox",
         "aspect_ratio",
@@ -94,88 +93,6 @@ def convert_path(path: str | Path) -> Path:
     return Path().cwd() if path == "./" else Path(path).expanduser()
 
 
-def update_config(config: dict, args: dict | Namespace) -> dict:
-    """
-    Update the configuration with any arguments.
-
-    Parameters
-    ----------
-    config : dict
-        Dictionary of configuration (typically read from YAML file specified with '-c/--config <filename>').
-    args : Namespace
-        Command line arguments.
-
-    Returns
-    -------
-    dict
-        Dictionary updated with command arguments.
-    """
-    args = vars(args) if isinstance(args, Namespace) else args
-
-    config_keys = config.keys()
-    for arg_key, arg_value in args.items():
-        if isinstance(arg_value, dict):
-            update_config(config, arg_value)
-        else:
-            if arg_key in config_keys and arg_value is not None:
-                original_value = config[arg_key]
-                config[arg_key] = arg_value
-                LOGGER.debug(f"Updated config config[{arg_key}] : {original_value} > {arg_value} ")
-    if "base_dir" in config.keys():
-        config["base_dir"] = convert_path(config["base_dir"])
-    if "output_dir" in config.keys():
-        config["output_dir"] = convert_path(config["output_dir"])
-    return config
-
-
-def update_plotting_config(plotting_config: dict) -> dict:
-    """
-    Update the plotting config for each of the plots in plot_dict.
-
-    Ensures that each entry has all the plotting configuration values that are needed.
-
-    Parameters
-    ----------
-    plotting_config : dict
-        Plotting configuration to be updated.
-
-    Returns
-    -------
-    dict
-        Updated plotting configuration.
-    """
-    main_config = plotting_config.copy()
-    for opt in ["plot_dict", "run"]:
-        main_config.pop(opt)
-    LOGGER.debug(
-        f"Main plotting options that need updating/adding to plotting dict :\n{pformat(main_config, indent=4)}"
-    )
-    for image, options in plotting_config["plot_dict"].items():
-        main_config_temp = main_config.copy()
-        LOGGER.debug(f"Dictionary for image : {image}")
-        LOGGER.debug(f"{pformat(options, indent=4)}")
-        # First update options with values that exist in main_config
-        # We must however be careful not to update the colourmap for diagnostic traces
-        if (
-            not plotting_config["plot_dict"][image]["core_set"]
-            and "mask_cmap" in plotting_config["plot_dict"][image].keys()
-        ):
-            main_config_temp.pop("mask_cmap")
-        plotting_config["plot_dict"][image] = update_config(options, main_config_temp)
-        LOGGER.debug(f"Updated values :\n{pformat(plotting_config['plot_dict'][image])}")
-        # Then combine the remaining key/values we need from main_config that don't already exist
-        for key_main, value_main in main_config_temp.items():
-            if key_main not in plotting_config["plot_dict"][image]:
-                plotting_config["plot_dict"][image][key_main] = value_main
-        LOGGER.debug(f"After adding missing configuration options :\n{pformat(plotting_config['plot_dict'][image])}")
-        # Make it so that binary images do not have the user-defined z-scale
-        # applied, but non-binary images do.
-        if plotting_config["plot_dict"][image]["image_type"] == "binary":
-            plotting_config["plot_dict"][image]["zrange"] = [None, None]
-
-    return plotting_config
-
-
 def _get_mask(image: npt.NDArray, thresh: float, threshold_direction: str, img_name: str = None) -> npt.NDArray:
     """
     Calculate a mask for pixels that exceed the threshold.
@@ -236,15 +153,14 @@ def get_mask(image: npt.NDArray, thresholds: dict, img_name: str = None) -> npt.
     return _get_mask(image, thresh=thresholds["above"], threshold_direction="above", img_name=img_name)
 
 
-# pylint: disable=unused-argument
+# pylint: disable=too-many-branches
 def get_thresholds(  # noqa: C901
     image: npt.NDArray,
     threshold_method: str,
-    otsu_threshold_multiplier: float = None,
-    threshold_std_dev: dict = None,
-    absolute: dict = None,
-    **kwargs,
-) -> dict:
+    otsu_threshold_multiplier: float | None = None,
+    threshold_std_dev: dict[str, list] | None = None,
+    absolute: dict[str, list] | None = None,
+) -> dict[str, list[float]]:
     """
     Obtain thresholds for masking data points.
 
@@ -260,43 +176,60 @@ def get_thresholds(  # noqa: C901
         Dict of above and below thresholds for the standard deviation method.
     absolute : tuple
         Dict of below and above thresholds.
-    **kwargs :
-        Dictionary passed to 'topostats.threshold(**kwargs)'.
 
     Returns
     -------
-    dict
+    dict[str, list[float]]
         Dictionary of thresholds, contains keys 'below' and optionally 'above'.
     """
-    thresholds = defaultdict()
+    thresholds: dict[str, list[float]] = {}
     if threshold_method == "otsu":
-        thresholds["above"] = threshold(image, method="otsu", otsu_threshold_multiplier=otsu_threshold_multiplier)
+        assert (
+            otsu_threshold_multiplier is not None
+        ), "Otsu threshold multiplier must be provided when using 'otsu' thresholding method."
+        thresholds["above"] = [threshold(image, method="otsu", otsu_threshold_multiplier=otsu_threshold_multiplier)]
     elif threshold_method == "std_dev":
-        try:
-            if threshold_std_dev["below"] is not None:
-                thresholds["below"] = threshold(image, method="mean") - threshold_std_dev["below"] * np.nanstd(image)
-            if threshold_std_dev["above"] is not None:
-                thresholds["above"] = threshold(image, method="mean") + threshold_std_dev["above"] * np.nanstd(image)
-        except TypeError as typeerror:
-            raise typeerror
+        assert (
+            threshold_std_dev is not None
+        ), "Standard deviation thresholds must be provided when using 'std_dev' thresholding method."
+        if threshold_std_dev["below"] is not None:
+            thresholds_std_dev_below = []
+            for threshold_std_dev_value in threshold_std_dev["below"]:
+                thresholds_std_dev_below.append(
+                    threshold(image, method="mean") - threshold_std_dev_value * np.nanstd(image)
+                )
+            thresholds["below"] = thresholds_std_dev_below
+        if threshold_std_dev["above"] is not None:
+            thresholds_std_dev_above = []
+            for threshold_std_dev_value in threshold_std_dev["above"]:
+                thresholds_std_dev_above.append(
+                    threshold(image, method="mean") + threshold_std_dev_value * np.nanstd(image)
+                )
+            thresholds["above"] = thresholds_std_dev_above
     elif threshold_method == "absolute":
+        assert absolute is not None, "Absolute thresholds must be provided when using 'absolute' thresholding method."
         if absolute["below"] is not None:
-            thresholds["below"] = absolute["below"]
+            thresolds_absolute_below = []
+            for threshold_absolute_value in absolute["below"]:
+                thresolds_absolute_below.append(threshold_absolute_value)
+            thresholds["below"] = thresolds_absolute_below
         if absolute["above"] is not None:
-            thresholds["above"] = absolute["above"]
+            thresolds_absolute_above = []
+            for threshold_absolute_value in absolute["above"]:
+                thresolds_absolute_above.append(threshold_absolute_value)
+            thresholds["above"] = thresolds_absolute_above
     else:
         if not isinstance(threshold_method, str):
             raise TypeError(
                 f"threshold_method ({threshold_method}) should be a string. Valid values : 'otsu' 'std_dev' 'absolute'"
             )
-        if threshold_method not in ["otsu", "std_dev", "absolute"]:
-            raise ValueError(
-                f"threshold_method ({threshold_method}) is invalid. Valid values : 'otsu' 'std_dev' 'absolute'"
-            )
+        raise ValueError(
+            f"threshold_method ({threshold_method}) is invalid. Valid values : 'otsu' 'std_dev' 'absolute'"
+        )
     return thresholds
 
 
-def create_empty_dataframe(column_set: str = "grainstats", index_col: str = "grain_number") -> pd.DataFrame:
+def create_empty_dataframe(column_set: str = "grainstats") -> pd.DataFrame:
     """
     Create an empty data frame for returning when no results are found.
 
@@ -304,16 +237,13 @@ def create_empty_dataframe(column_set: str = "grainstats", index_col: str = "gra
     ----------
     column_set : str
         The name of the set of columns for the empty dataframe.
-    index_col : str
-        Column to set as index of empty dataframe.
 
     Returns
     -------
     pd.DataFrame
         Empty Pandas DataFrame.
     """
-    empty_df = pd.DataFrame(columns=COLUMN_SETS[column_set])
-    return empty_df.set_index(index_col)
+    return pd.DataFrame(columns=COLUMN_SETS[column_set])
 
 
 def bound_padded_coordinates_to_image(coordinates: npt.NDArray, padding: int, image_shape: tuple) -> tuple:
@@ -433,3 +363,86 @@ def coords_2_img(coords, image, ordered=False) -> np.ndarray:
         ]
         comb[np.floor(coords[:, 0]).astype(np.int32), np.floor(coords[:, 1]).astype(np.int32)] = 1
     return comb
+
+
+def update_background_class(
+    grain_mask_tensor: npt.NDArray,
+) -> npt.NDArray[np.bool_]:
+    """
+    Update the background class to reflect the other classes.
+
+    Parameters
+    ----------
+    grain_mask_tensor : npt.NDArray
+        3-D Numpy array of the grain mask tensor.
+
+    Returns
+    -------
+    npt.NDArray
+        3-D Numpy array of image tensor with updated background class.
+    """
+    flattened_mask = flatten_multi_class_tensor(grain_mask_tensor)
+    new_background = np.where(flattened_mask == 0, 1, 0)
+    grain_mask_tensor[:, :, 0] = new_background
+    return grain_mask_tensor.astype(bool)
+
+
+def flatten_multi_class_tensor(grain_mask_tensor: npt.NDArray) -> npt.NDArray:
+    """
+    Flatten a multi-class image tensor to a single binary mask.
+
+    The returned tensor is of boolean type in case there are multiple hits in the same pixel. We dont want to have
+    2s, 3s etc because this would cause issues in labelling and cause erroneous grains within grains.
+
+    Parameters
+    ----------
+    grain_mask_tensor : npt.NDArray
+        Multi class grain mask tensor tensor of shape (N, N, C).
+
+    Returns
+    -------
+    npt.NDArray
+        Combined binary mask of all but the background class (:, :, 0).
+    """
+    assert len(grain_mask_tensor.shape) == 3, f"Tensor not 3D: {grain_mask_tensor.shape}"
+    return np.sum(grain_mask_tensor[:, :, 1:], axis=-1).astype(bool)
+
+
+def construct_full_mask_from_graincrops(
+    graincrops: dict[int, Any], image_shape: tuple[int, int, int]
+) -> npt.NDArray[np.bool_]:
+    """
+    Construct a full mask tensor from the grain crops.
+
+    Parameters
+    ----------
+    graincrops : dict[int, GrainCrop]
+        Dictionary of grain crops.
+    image_shape : tuple[int, int, int]
+        Shape of the original image.
+
+    Returns
+    -------
+    npt.NDArray[np.bool_]
+        HxWxC Numpy array of the full mask tensor (H = height, W = width, C = class >= 2).
+    """
+    # Calculate the number of classes from the first grain crop
+    # Check if graincrops is empty
+    if not graincrops:
+        raise ValueError("No grain crops provided to construct the full mask tensor.")
+    num_classes: int = list(graincrops.values())[0].mask.shape[2]
+    full_mask_tensor: npt.NDArray[np.bool] = np.zeros((image_shape[0], image_shape[1], num_classes), dtype=np.bool_)
+    for _grain_number, graincrop in graincrops.items():
+        bounding_box = graincrop.bbox
+        crop_tensor = graincrop.mask
+
+        # Add the crop to the full mask tensor without overriding anything else, for all classes
+        for class_index in range(crop_tensor.shape[2]):
+            full_mask_tensor[
+                bounding_box[0] : bounding_box[2],
+                bounding_box[1] : bounding_box[3],
+                class_index,
+            ] += crop_tensor[:, :, class_index]
+
+    # Update background class and return
+    return update_background_class(full_mask_tensor)

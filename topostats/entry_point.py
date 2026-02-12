@@ -8,8 +8,8 @@ import argparse as arg
 import sys
 from pathlib import Path
 
-from topostats import __version__, run_modules
-from topostats.io import write_config_with_comments
+from topostats import __version__, log_topostats_version, run_modules
+from topostats.config import update_module, write_config_with_comments
 from topostats.plotting import run_toposum
 
 # pylint: disable=too-many-lines
@@ -100,6 +100,13 @@ def create_parser() -> arg.ArgumentParser:
         help="File extension to scan for.",
     )
     parser.add_argument(
+        "--output-stats",
+        dest="output_stats",
+        type=str,
+        required=False,
+        help="'basic' (image and grain) or 'full' (image, grain, branch and molecule) statistics written to CSV.",
+    )
+    parser.add_argument(
         "--channel",
         dest="channel",
         type=str,
@@ -112,12 +119,15 @@ def create_parser() -> arg.ArgumentParser:
     parser.add_argument(
         "--image-set",
         dest="image_set",
-        type=str,
+        type=list,
+        nargs="+",
         required=False,
-        help="Image set to generate, default is 'core' other option is 'all'.",
+        help="Image set to generate, default is 'core' other options are 'all', "
+        "'filters', 'grains', 'grain_crops', 'disordered_tracing', "
+        "'nodestats', 'ordered_tracing', 'splining'.",
     )
 
-    subparsers = parser.add_subparsers(title="program", description="Available programs, listed below:", dest="program")
+    subparsers = parser.add_subparsers(title="program", description="Available programs, listed below:", dest="module")
 
     # Create a sub-parsers for different stages of processing and tasks
     process_parser = subparsers.add_parser(
@@ -166,14 +176,14 @@ def create_parser() -> arg.ArgumentParser:
         dest="filter_threshold_absolute_below",
         type=float,
         required=False,
-        help="Threshold for data below the image bacnground dor absolute method during Filtering",
+        help="Threshold for data below the image background dor absolute method during Filtering",
     )
     process_parser.add_argument(
         "--filter-threshold-absolute-above",
         dest="filter_threshold_absolute_above",
         type=float,
         required=False,
-        help="Threshold for data above the image bacnground dor absolute method during Filtering",
+        help="Threshold for data above the image background dor absolute method during Filtering",
     )
     process_parser.add_argument(
         "--filter-gaussian-size",
@@ -230,6 +240,13 @@ def create_parser() -> arg.ArgumentParser:
 
     # Grains
     process_parser.add_argument(
+        "--grains-grain-crop-padding",
+        dest="grains_grain_crop_padding",
+        type=int,
+        required=False,
+        help="Padding to be applied while cropping grains, must be >= 1.",
+    )
+    process_parser.add_argument(
         "--grains-threshold-method",
         dest="grains_threshold_method",
         type=str,
@@ -262,14 +279,14 @@ def create_parser() -> arg.ArgumentParser:
         dest="grains_threshold_absolute_below",
         type=float,
         required=False,
-        help="Threshold for data below the image bacnground dor absolute method during Grain finding",
+        help="Threshold for data below the image background dor absolute method during Grain finding",
     )
     process_parser.add_argument(
         "--grains-threshold-absolute-above",
         dest="grains_threshold_absolute_above",
         type=float,
         required=False,
-        help="Threshold for data above the image bacnground dor absolute method during Grain finding",
+        help="Threshold for data above the image background dor absolute method during Grain finding",
     )
     process_parser.add_argument(
         "--grains-direction",
@@ -279,23 +296,16 @@ def create_parser() -> arg.ArgumentParser:
         help="Whether to look for grains 'above' pr 'below' thresholds of 'both'",
     )
     process_parser.add_argument(
-        "--grains-smallest-grain-size-nm2",
-        dest="grains_smallest_grain_size_nm2",
-        type=float,
-        required=False,
-        help="Size in nm^2 of tiny grains/blobs to remove, must be > 0.0",
-    )
-    process_parser.add_argument(
-        "--grains-absolute-area-threshold-above",
-        dest="grains_absolute_area_threshold_above",
+        "--grains-area-thresholds-above",
+        dest="grains_area_thresholds_above",
         type=float,
         required=False,
         nargs=2,
         help="Above surface (low, high) in nm^2, both low and high should be specified",
     )
     process_parser.add_argument(
-        "--grains-absolute-area-threshold-below",
-        dest="grains_absolute_area_threshold_below",
+        "--grains-area-thresholds-below",
+        dest="grains_area_thresholds_below",
         type=float,
         required=False,
         nargs=2,
@@ -335,6 +345,20 @@ def create_parser() -> arg.ArgumentParser:
         help="Lower bound for normalisation of input data. This should be slightly lower than the minimum desired"
         "/expected height of the background",
     )
+    process_parser.add_argument(
+        "--unet-remove-disconnected-grains",
+        dest="unet_remove_disconnected_grains",
+        type=bool,
+        required=False,
+        help="Whether or not to remove grains that are disconnected from the original mask",
+    )
+    process_parser.add_argument(
+        "--unet-confidence",
+        dest="unet_confidence",
+        type=float,
+        required=False,
+        help="Confidence threshold for the UNet model. Smaller is more generous, large is stricter.",
+    )
 
     # Grainstats
     process_parser.add_argument(
@@ -346,34 +370,38 @@ def create_parser() -> arg.ArgumentParser:
         "'binary_erosion (default)",
     )
     process_parser.add_argument(
-        "--grainstats-cropped-size",
-        dest="grainstats_cropped_size",
-        type=float,
-        required=False,
-        help="Length (in nm) of square cropped images (can take -1 for grain-sized box)",
-    )
-    process_parser.add_argument(
         "--grainstats-extract-height-profile",
         dest="grainstats_extract_height_profile",
         type=bool,
         required=False,
         help="Extract height profiles along maximum feret of molecules",
     )
+    process_parser.add_argument(
+        "--grainstats-class-names",
+        dest="grainstats_class_names",
+        type=list,
+        nargs="+",
+        required=False,
+        help=(
+            "Names of the objects found by the segmentation methods (objects "
+            "are linked to the `class_number` output in the grainstats csv"
+        ),
+    )
 
     # Disordered Tracing
+    process_parser.add_argument(
+        "--disordered-class-index",
+        dest="disordered_class_index",
+        type=int,
+        required=False,
+        help="Index of the class to trace.",
+    )
     process_parser.add_argument(
         "--disordered-min-skeleton-size",
         dest="disordered_min_skeleton_size",
         type=float,
         required=False,
         help="Minimum number of pixels in a skeleton for it to be retained",
-    )
-    process_parser.add_argument(
-        "--disordered-pad-width",
-        dest="disordered_pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing",
     )
     process_parser.add_argument(
         "--disordered-mask-smoothing-params-gaussian-sigma",
@@ -446,6 +474,13 @@ def create_parser() -> arg.ArgumentParser:
         required=False,
         help="Method to prune branches based on height. Options : 'abs' | 'mean_abs' | 'iqr'",
     )
+    process_parser.add_argument(
+        "--disordered-pruning-params-only-height-prune-endpoints",
+        dest="disordered_pruning_params_only_height_prune_endpoints",
+        type=bool,
+        required=False,
+        help="Restrict height-based pruning to skeleton segments containing an endpoint.",
+    )
 
     # Nodestats
     process_parser.add_argument(
@@ -476,13 +511,6 @@ def create_parser() -> arg.ArgumentParser:
         required=False,
         help="Whether to try and pair odd-branched nodes",
     )
-    process_parser.add_argument(
-        "--nodestats-pad-width",
-        dest="nodestats_pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing (should be the same as --disordered-pad-width)",
-    )
 
     # Ordered Tracing
     process_parser.add_argument(
@@ -491,13 +519,6 @@ def create_parser() -> arg.ArgumentParser:
         type=str,
         required=False,
         help="Ordering method for ordering disordered traces. Option 'nodestats'",
-    )
-    process_parser.add_argument(
-        "--ordered-pad-width",
-        dest="ordered_pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing (should be the same as --disordered-pad-width)",
     )
 
     # Splining
@@ -509,36 +530,50 @@ def create_parser() -> arg.ArgumentParser:
         help="Method for splining. Options 'spline' or 'rolling_window",
     )
     process_parser.add_argument(
-        "--splining-window-size",
-        dest="splining_window_size",
+        "--rolling-window-size",
+        dest="rolling_window_size",
         type=float,
         required=False,
         help="Size in nm of the rolling window",
     )
     process_parser.add_argument(
-        "--splining-step-size",
-        dest="splining_step_size",
+        "--splining-resampling",
+        dest="splining_resampling",
+        type=bool,
+        required=False,
+        help="Whether to resample the trace or not.",
+    )
+    process_parser.add_argument(
+        "--splining-resample-regular-spatial-interval",
+        dest="splining_resample_regular_spatial_interval",
+        type=float,
+        required=False,
+        help="The spatial interval to resample the trace to in nm.",
+    )
+    process_parser.add_argument(
+        "--spline-step-size",
+        dest="spline_step_size",
         type=float,
         required=False,
         help="The sampling rate of the spline in metres",
     )
     process_parser.add_argument(
-        "--splining-linear-smoothing",
-        dest="splining_linear_smoothing",
+        "--spline-linear-smoothing",
+        dest="spline_linear_smoothing",
         type=float,
         required=False,
         help="The amount of smoothing to apply to linear features",
     )
     process_parser.add_argument(
-        "--splining-circular-smoothing",
-        dest="splining_circular_smoothing",
+        "--spline-circular-smoothing",
+        dest="spline_circular_smoothing",
         type=float,
         required=False,
         help="The amount of smoothing to apply to circular features",
     )
     process_parser.add_argument(
-        "--splining-degree",
-        dest="splining_degree",
+        "--spline-degree",
+        dest="spline_degree",
         type=int,
         required=False,
         help="The polynomial degree of the spline",
@@ -573,6 +608,14 @@ def create_parser() -> arg.ArgumentParser:
         required=False,
         help="Colormap to use, options include 'nanoscope', 'afmhot' or any valid Matplotlib colormap.",
     )
+    process_parser.add_argument(
+        "--grain-crop-plot-size-nm",
+        dest="grain_crop_plot_size_nm",
+        type=float,
+        required=False,
+        help="Size in nm of the square cropped grain images if using the grains image set. If -1, will "
+        "use the grain's default bounding box size.",
+    )
     process_parser.add_argument("-m", "--mask", dest="mask", type=bool, required=False, help="Mask the image.")
     process_parser.add_argument(
         "-w",
@@ -581,6 +624,13 @@ def create_parser() -> arg.ArgumentParser:
         type=bool,
         required=False,
         help="Whether to ignore warnings.",
+    )
+    process_parser.add_argument(
+        "--number-masks",
+        dest="number_grains",
+        type=bool,
+        required=False,
+        help="Add numbers to each grain mask in outputted mask images.",
     )
     # Run the relevant function with the arguments
     process_parser.set_defaults(func=run_modules.process)
@@ -639,14 +689,14 @@ def create_parser() -> arg.ArgumentParser:
         dest="threshold_absolute_below",
         type=float,
         required=False,
-        help="Threshold for data below the image bacnground dor absolute method during Filtering",
+        help="Threshold for data below the image background dor absolute method during Filtering",
     )
     filter_parser.add_argument(
         "--threshold-absolute-above",
         dest="threshold_absolute_above",
         type=float,
         required=False,
-        help="Threshold for data above the image bacnground dor absolute method during Filtering",
+        help="Threshold for data above the image background dor absolute method during Filtering",
     )
     filter_parser.add_argument(
         "--gaussian-size", dest="gaussian_size", type=float, required=False, help="Gaussian blur intensity in pixels."
@@ -705,6 +755,13 @@ def create_parser() -> arg.ArgumentParser:
         help="Load filtered images from '.topostats' files and detect grains.",
     )
     grains_parser.add_argument(
+        "--grain-crop-padding",
+        dest="grain_crop_padding",
+        type=int,
+        required=False,
+        help="Padding to be applied while cropping grains, must be at least 1.",
+    )
+    grains_parser.add_argument(
         "--threshold-method",
         dest="threshold_method",
         type=str,
@@ -737,14 +794,14 @@ def create_parser() -> arg.ArgumentParser:
         dest="threshold_absolute_below",
         type=float,
         required=False,
-        help="Threshold for data below the image bacnground dor absolute method during Grain finding",
+        help="Threshold for data below the image background dor absolute method during Grain finding",
     )
     grains_parser.add_argument(
         "--threshold-absolute-above",
         dest="threshold_absolute_above",
         type=float,
         required=False,
-        help="Threshold for data above the image bacnground dor absolute method during Grain finding",
+        help="Threshold for data above the image background dor absolute method during Grain finding",
     )
     grains_parser.add_argument(
         "--direction",
@@ -754,23 +811,16 @@ def create_parser() -> arg.ArgumentParser:
         help="Whether to look for grains 'above' pr 'below' thresholds of 'both'",
     )
     grains_parser.add_argument(
-        "--smallest-grain-size-nm2",
-        dest="smallest_grain_size_nm2",
-        type=float,
-        required=False,
-        help="Size in nm^2 of tiny grains/blobs to remove, must be > 0.0",
-    )
-    grains_parser.add_argument(
-        "--absolute-area-threshold-above",
-        dest="absolute_area_threshold_above",
+        "--area-thresholds-above",
+        dest="area_thresholds_above",
         type=float,
         required=False,
         nargs=2,
         help="Above surface (low, high) in nm^2, both low and high should be specified",
     )
     grains_parser.add_argument(
-        "--absolute-area-threshold-below",
-        dest="absolute_area_threshold_below",
+        "--area-thresholds-below",
+        dest="area_thresholds_below",
         type=float,
         required=False,
         nargs=2,
@@ -810,13 +860,27 @@ def create_parser() -> arg.ArgumentParser:
         help="Lower bound for normalisation of input data. This should be slightly lower than the minimum desired"
         "/expected height of the background",
     )
+    grains_parser.add_argument(
+        "--unet-remove-disconnected-grains",
+        dest="unet_remove_disconnected_grains",
+        type=bool,
+        required=False,
+        help="Whether or not to remove grains that are disconnected from the original mask",
+    )
+    grains_parser.add_argument(
+        "--unet-confidence",
+        dest="unet_confidence",
+        type=float,
+        required=False,
+        help="Confidence threshold for the UNet model. Smaller is more generous, large is stricter.",
+    )
     # Run the relevant function with the arguments
     grains_parser.set_defaults(func=run_modules.grains)
 
     grainstats_parser = subparsers.add_parser(
         "grainstats",
-        description="WIP DO NOT USE - Load images with grains from '.topostats' files and calculate statistics.",
-        help="WIP DO NOT USE - Load images with grains from '.topostats' files and calculate statistics.",
+        description="Load images with grains from '.topostats' files and calculate statistics.",
+        help="Load images with grains from '.topostats' files and calculate statistics.",
     )
     grainstats_parser.add_argument(
         "--edge-detection-method",
@@ -827,18 +891,22 @@ def create_parser() -> arg.ArgumentParser:
         "'binary_erosion (default)",
     )
     grainstats_parser.add_argument(
-        "--cropped-size",
-        dest="cropped_size",
-        type=float,
-        required=False,
-        help="Length (in nm) of square cropped images (can take -1 for grain-sized box)",
-    )
-    grainstats_parser.add_argument(
         "--extract-height-profile",
         dest="extract_height_profile",
         type=bool,
         required=False,
         help="Extract height profiles along maximum feret of molecules",
+    )
+    grainstats_parser.add_argument(
+        "--class-names",
+        dest="class_names",
+        type=list,
+        nargs="+",
+        required=False,
+        help=(
+            "Names of the objects found by the segmentation methods (objects "
+            "are linked to the `class_number` output in the grainstats csv"
+        ),
     )
     # Run the relevant function with the arguments
     grainstats_parser.set_defaults(func=run_modules.grainstats)
@@ -850,18 +918,18 @@ def create_parser() -> arg.ArgumentParser:
         help="WIP DO NOT USE - Skeletonise and prune objects to disordered traces.",
     )
     disordered_tracing_parser.add_argument(
+        "--class-index",
+        dest="class_index",
+        type=int,
+        required=False,
+        help="Index of the class to trace",
+    )
+    disordered_tracing_parser.add_argument(
         "--min-skeleton-size",
         dest="min_skeleton_size",
         type=float,
         required=False,
         help="Minimum number of pixels in a skeleton for it to be retained",
-    )
-    disordered_tracing_parser.add_argument(
-        "--pad-width",
-        dest="pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing",
     )
     disordered_tracing_parser.add_argument(
         "--mask-smoothing-params-gaussian-sigma",
@@ -934,6 +1002,13 @@ def create_parser() -> arg.ArgumentParser:
         required=False,
         help="Method to prune branches based on height. Options : 'abs' | 'mean_abs' | 'iqr'",
     )
+    disordered_tracing_parser.add_argument(
+        "--pruning-params-only-height-prune-endpoints",
+        dest="pruning_params_only_height_prune_endpoints",
+        type=bool,
+        required=False,
+        help="Restrict height-based pruning to skeleton segments containing an endpoint.",
+    )
     # Run the relevant function with the arguments
     disordered_tracing_parser.set_defaults(func=run_modules.disordered_tracing)
 
@@ -971,13 +1046,6 @@ def create_parser() -> arg.ArgumentParser:
         required=False,
         help="Whether to try and pair odd-branched nodes",
     )
-    nodestats_parser.add_argument(
-        "--pad-width",
-        dest="pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing (should be the same as --disordered-pad-width)",
-    )
     # Run the relevant function with the arguments
     nodestats_parser.set_defaults(func=run_modules.nodestats)
 
@@ -993,13 +1061,6 @@ def create_parser() -> arg.ArgumentParser:
         type=str,
         required=False,
         help="Ordering method for ordering disordered traces. Option 'nodestats'",
-    )
-    ordered_tracing_parser.add_argument(
-        "--pad-width",
-        dest="pad_width",
-        type=int,
-        required=False,
-        help="Pixels to pad grains by when tracing (should be the same as --disordered-pad-width)",
     )
     # Run the relevant function with the arguments
     ordered_tracing_parser.set_defaults(func=run_modules.ordered_tracing)
@@ -1018,36 +1079,50 @@ def create_parser() -> arg.ArgumentParser:
         help="Method for splining. Options 'spline' or 'rolling_window",
     )
     splining_parser.add_argument(
-        "--window-size",
-        dest="window_size",
+        "--rolling-window-size",
+        dest="rolling_window_size",
         type=float,
         required=False,
         help="Size in nm of the rolling window",
     )
     splining_parser.add_argument(
-        "--step-size",
-        dest="step_size",
+        "--resampling",
+        dest="resampling",
+        type=bool,
+        required=False,
+        help="Whether to resample the trace or not.",
+    )
+    splining_parser.add_argument(
+        "--resample-regular-spatial-interval",
+        dest="resample_regular_spatial_interval",
+        type=float,
+        required=False,
+        help="The spatial interval to resample the trace to in nm.",
+    )
+    splining_parser.add_argument(
+        "--spline-step-size",
+        dest="spline_step_size",
         type=float,
         required=False,
         help="The sampling rate of the spline in metres",
     )
     splining_parser.add_argument(
-        "--linear-smoothing",
-        dest="linear_smoothing",
+        "--spline-linear-smoothing",
+        dest="spline_linear_smoothing",
         type=float,
         required=False,
         help="The amount of smoothing to apply to linear features",
     )
     splining_parser.add_argument(
-        "--circular-smoothing",
-        dest="circular_smoothing",
+        "--spline-circular-smoothing",
+        dest="spline_circular_smoothing",
         type=float,
         required=False,
         help="The amount of smoothing to apply to circular features",
     )
     splining_parser.add_argument(
-        "--degree",
-        dest="degree",
+        "--spline-degree",
+        dest="spline_degree",
         type=int,
         required=False,
         help="The polynomial degree of the spline",
@@ -1089,13 +1164,6 @@ def create_parser() -> arg.ArgumentParser:
         help="Filename to write a sample YAML configuration file to (should end in '.yaml').",
     )
     summary_parser.add_argument(
-        "--create-label-file",
-        dest="create_label_file",
-        type=Path,
-        required=False,
-        help="Filename to write a sample YAML label file to (should end in '.yaml').",
-    )
-    summary_parser.add_argument(
         "--savefig-format",
         dest="savefig_format",
         type=str,
@@ -1115,7 +1183,6 @@ def create_parser() -> arg.ArgumentParser:
         dest="filename",
         type=Path,
         required=False,
-        default="config.yaml",
         help="Name of YAML file to save configuration to (default 'config.yaml').",
     )
     create_config_parser.add_argument(
@@ -1132,49 +1199,19 @@ def create_parser() -> arg.ArgumentParser:
         "--config",
         dest="config",
         type=str,
-        default=None,
-        help="Configuration to use, currently only one is supported, the 'default'.",
-    )
-    create_config_parser.add_argument(
-        "-s",
-        "--simple",
-        dest="simple",
-        action="store_true",
-        help="Create a simple configuration file with only the most common options.",
+        default="default",
+        help="Configuration to use, currently 'default', 'simple', 'mplstyle' and 'var_to_label' are supported.",
     )
     create_config_parser.set_defaults(func=write_config_with_comments)
 
-    create_matplotlibrc_parser = subparsers.add_parser(
-        "create-matplotlibrc",
-        description="Create a Matplotlibrc parameters file.",
-        help="Create a Matplotlibrc parameters file using the defaults.",
+    # Rename old Bruker files
+    bruker_rename = subparsers.add_parser(
+        "bruker-rename",
+        description="Append the suffix '.spm' to old (numeric) Bruker file extensions.",
+        help="Append the suffix '.spm' to old (numeric) Bruker file extensions.",
     )
-    create_matplotlibrc_parser.add_argument(
-        "-f",
-        "--filename",
-        dest="filename",
-        type=Path,
-        required=False,
-        default="topostats.mplstyle",
-        help="Name of file to save Matplotlibrc configuration to (default 'topostats.mplstyle').",
-    )
-    create_matplotlibrc_parser.add_argument(
-        "-o",
-        "--output-dir",
-        dest="output_dir",
-        type=Path,
-        required=False,
-        default="./",
-        help="Path to where the YAML file should be saved (default './' the current directory).",
-    )
-    create_matplotlibrc_parser.add_argument(
-        "-c",
-        "--config",
-        dest="config",
-        default="topostats.mplstyle",
-        help="Matplotlibrc style file to use, currently only one is supported, the 'topostats.mplstyle'.",
-    )
-    create_matplotlibrc_parser.set_defaults(func=write_config_with_comments)
+    # Run the relevant function with the arguments
+    bruker_rename.set_defaults(func=run_modules.bruker_rename)
 
     return parser
 
@@ -1198,14 +1235,19 @@ def entry_point(manually_provided_args=None, testing=False) -> None:
     None
         Does not return anything.
     """
+    # Log topostats version and the commit id
+    log_topostats_version()
+
     # Parse command line options, load config (or default) and update with command line options
     parser = create_parser()
     args = parser.parse_args() if manually_provided_args is None else parser.parse_args(manually_provided_args)
 
     # No program specified, print help and exit
-    if not args.program:
+    if not args.module:
         parser.print_help()
         sys.exit()
+    else:
+        update_module(args=args)
 
     if testing:
         return args

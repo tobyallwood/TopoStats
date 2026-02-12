@@ -1,7 +1,5 @@
 """Generates disordered traces (pruned skeletons) and metrics."""
 
-from __future__ import annotations
-
 import logging
 import warnings
 
@@ -9,11 +7,11 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import skan
-import skimage.measure as skimage_measure
 from scipy import ndimage
 from skimage import filters
 from skimage.morphology import label
 
+from topostats.classes import DisorderedTrace, TopoStats
 from topostats.logs.logs import LOGGER_NAME
 from topostats.tracing.pruning import prune_skeleton
 from topostats.tracing.skeletonize import getSkeleton
@@ -23,6 +21,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 
 # too-many-positional-arguments
 # pylint: disable=R0917
+# ruff: noqa: B023
 
 
 class disorderedTrace:  # pylint: disable=too-many-instance-attributes
@@ -48,8 +47,8 @@ class disorderedTrace:  # pylint: disable=too-many-instance-attributes
         Skeletonisation Parameters. Method of skeletonisation to use 'topostats' is the original TopoStats
         method. Three methods from scikit-image are available 'zhang', 'lee' and 'thin'.
     pruning_params : dict
-        Dictionary of pruning parameters. Contains 'method', 'max_length', 'height_threshold', 'method_values' and
-        'method_outlier'.
+        Dictionary of pruning parameters. Contains 'method', 'max_length', 'height_threshold', 'method_values'
+        'method_outlier' and 'only_height_prune_endpoints'.
     n_grain : int
         Grain number being processed (only  used in logging).
     """
@@ -88,8 +87,8 @@ class disorderedTrace:  # pylint: disable=too-many-instance-attributes
             Skeletonisation Parameters. Method of skeletonisation to use 'topostats' is the original TopoStats
             method. Three methods from scikit-image are available 'zhang', 'lee' and 'thin'.
         pruning_params : dict
-            Dictionary of pruning parameters. Contains 'method', 'max_length', 'height_threshold', 'method_values' and
-            'method_outlier'.
+            Dictionary of pruning parameters. Contains 'method', 'max_length', 'height_threshold', 'method_values',
+            'method_outlier' and 'only_height_prune_endpoints'.
         n_grain : int
             Grain number being processed (only  used in logging).
         """
@@ -105,9 +104,9 @@ class disorderedTrace:  # pylint: disable=too-many-instance-attributes
         self.pruning_params = pruning_params if pruning_params is not None else {"method": "topostats"}
         self.n_grain = n_grain
         # Images
-        self.smoothed_mask = np.zeros_like(image)
-        self.skeleton = np.zeros_like(image)
-        self.pruned_skeleton = np.zeros_like(image)
+        self.smoothed_mask = np.zeros_like(self.image)
+        self.skeleton = np.zeros_like(self.image)
+        self.pruned_skeleton = np.zeros_like(self.image)
         # Trace
         self.disordered_trace = None
 
@@ -119,6 +118,13 @@ class disorderedTrace:  # pylint: disable=too-many-instance-attributes
     def trace_dna(self):
         """Perform the DNA skeletonisation and cleaning pipeline."""
         self.smoothed_mask = self.smooth_mask(self.mask, **self.mask_smoothing_params)
+        if check_pixel_touching_edge(self.smoothed_mask):
+            LOGGER.warning(
+                f"[{self.filename}] : Grain {self.n_grain} skipped as padding is too small. Please consider "
+                "increasing the value of grains.grain_crop_padding in your config file and try again."
+            )
+            self.disordered_trace = None
+            return
         self.skeleton = getSkeleton(
             self.image,
             self.smoothed_mask,
@@ -299,30 +305,40 @@ class disorderedTrace:  # pylint: disable=too-many-instance-attributes
         return comb[comb != 0].mean() * 2 * pixel_to_nm_scaling
 
 
-def trace_image_disordered(  # pylint: disable=too-many-arguments,too-many-locals
-    image: npt.NDArray,
-    grains_mask: npt.NDArray,
-    filename: str,
-    pixel_to_nm_scaling: float,
+def check_pixel_touching_edge(mask: npt.NDArray) -> bool:
+    """
+    Check if any pixels in a mask touch the edge of the image.
+
+    Parameters
+    ----------
+    mask : npt.NDArray
+        Numpy array of mask to be checked.
+
+    Returns
+    -------
+    bool
+        True or False if a pixel is found on the edge of the image.
+    """
+    return mask[:, 0].any() or mask[:, -1].any() or mask[0, :].any() or mask[-1, :].any()
+
+
+def trace_image_disordered(  # pylint: disable=too-many-arguments,too-many-locals, too-many-statements
+    topostats_object: TopoStats,
+    class_index: int,
     min_skeleton_size: int,
     mask_smoothing_params: dict,
     skeletonisation_params: dict,
     pruning_params: dict,
-    pad_width: int = 1,
-) -> tuple[dict, pd.DataFrame, dict, pd.DataFrame]:
+) -> None:
     """
     Processor function for tracing image.
 
     Parameters
     ----------
-    image : npt.NDArray
-        Full image as Numpy Array.
-    grains_mask : npt.NDArray
-        Full image as Grains that are labelled.
-    filename : str
-        File being processed.
-    pixel_to_nm_scaling : float
-        Pixel to nm scaling.
+    topostats_object : TopoStats
+        TopoStats object post ''Grains'' so that there are ''GrainCrops'' nested within.
+    class_index : int
+        Index of the class to trace.
     min_skeleton_size : int
         Minimum size of grain in pixels after skeletonisation.
     mask_smoothing_params : dict
@@ -333,157 +349,161 @@ def trace_image_disordered(  # pylint: disable=too-many-arguments,too-many-local
         (scikitimage) or 'topostats' (original TopoStats method).
     pruning_params : dict
         Dictionary of options for pruning.
-    pad_width : int
-        Padding to the cropped image mask.
-
-    Returns
-    -------
-    tuple[dict, pd.DataFrame, dict, pd.DataFrame]
-        Binary and integer labeled cropped and full-image masks from skeletonising and pruning the grains in the image.
     """
-    # Check both arrays are the same shape - should this be a test instead, why should this ever occur?
-    if image.shape != grains_mask.shape:
-        raise ValueError(f"Image shape ({image.shape}) and Mask shape ({grains_mask.shape}) should match.")
-
-    cropped_images, cropped_masks, bboxs = prep_arrays(image, grains_mask, pad_width)
-    n_grains = len(cropped_images)
-    img_base = np.zeros_like(image)
+    img_base = np.zeros_like(topostats_object.image)
     disordered_trace_crop_data = {}
     grainstats_additions = {}
     disordered_tracing_stats = pd.DataFrame()
-
-    # want to get each cropped image, use some anchor coords to match them onto the image,
-    #   and compile all the grain images onto a single image
+    grain_crops = topostats_object.grain_crops
+    filename = topostats_object.filename
+    # These are images for diagnostics, edited during tracing to show
+    # various steps
     all_images = {
-        "smoothed_grain": img_base.copy(),
+        "smoothed_mask": img_base.copy(),
         "skeleton": img_base.copy(),
         "pruned_skeleton": img_base.copy(),
         "branch_indexes": img_base.copy(),
         "branch_types": img_base.copy(),
     }
-
-    LOGGER.info(f"[{filename}] : Calculating Disordered Tracing statistics for {n_grains} grains...")
-
-    for cropped_image_index, cropped_image in cropped_images.items():
+    # for cropped_image_index, cropped_image in cropped_images.items():
+    number_of_grains = len(grain_crops)
+    for grain_number, grain_crop in grain_crops.items():
         try:
-            cropped_mask = cropped_masks[cropped_image_index]
-            disordered_trace_images = disordered_trace_grain(
-                cropped_image=cropped_image,
-                cropped_mask=cropped_mask,
-                pixel_to_nm_scaling=pixel_to_nm_scaling,
+            grain_crop_tensor = grain_crop.mask
+            grain_crop_class_mask = grain_crop_tensor[:, :, class_index]
+
+            disordered_trace_images: dict | None = disordered_trace_grain(
+                cropped_image=grain_crop.image,
+                cropped_mask=grain_crop_class_mask,
+                pixel_to_nm_scaling=grain_crop.pixel_to_nm_scaling,
+                filename=filename,
                 mask_smoothing_params=mask_smoothing_params,
                 skeletonisation_params=skeletonisation_params,
                 pruning_params=pruning_params,
-                filename=filename,
                 min_skeleton_size=min_skeleton_size,
-                n_grain=cropped_image_index,
+                n_grain=grain_number,
             )
-            LOGGER.debug(f"[{filename}] : Disordered Traced grain {cropped_image_index + 1} of {n_grains}")
-
+            LOGGER.debug(f"[{grain_crop.filename}] : Disordered Traced grain {grain_number + 1} of {number_of_grains}")
             if disordered_trace_images is not None:
                 # obtain segment stats
                 try:
                     skan_skeleton = skan.Skeleton(
-                        np.where(disordered_trace_images["pruned_skeleton"] == 1, cropped_image, 0),
-                        spacing=pixel_to_nm_scaling,
+                        np.where(disordered_trace_images["pruned_skeleton"] == 1, grain_crop.image, 0),
+                        spacing=grain_crop.pixel_to_nm_scaling,
                     )
-                    skan_df = skan.summarize(skan_skeleton, separator="_")
-                    skan_df = compile_skan_stats(skan_df, skan_skeleton, cropped_image, filename, cropped_image_index)
-                    total_branch_length = skan_df["branch_distance"].sum() * 1e-9
+                    skan_df = skan.summarize(skel=skan_skeleton, separator="_")
+                    total_branch_length_nm = skan_df["branch_distance"].sum() * 1e-9
                 except ValueError:
                     LOGGER.warning(
-                        f"[{filename}] : Skeleton for grain {cropped_image_index} has been pruned out of existence."
+                        f"[{grain_crop.filename}] : Skeleton for grain {grain_number} has been pruned out of existence."
                     )
-                    total_branch_length = 0
+                    total_branch_length_nm = 0
                     skan_df = pd.DataFrame()
-
                 disordered_tracing_stats = pd.concat((disordered_tracing_stats, skan_df))
-
                 # obtain stats
                 conv_pruned_skeleton = convolve_skeleton(disordered_trace_images["pruned_skeleton"])
-                grainstats_additions[cropped_image_index] = {
-                    "image": filename,
-                    "grain_number": cropped_image_index,
+                grainstats_additions[grain_number] = {
+                    "image": grain_crop.filename,
                     "grain_endpoints": np.int64((conv_pruned_skeleton == 2).sum()),
                     "grain_junctions": np.int64((conv_pruned_skeleton == 3).sum()),
-                    "total_branch_lengths": total_branch_length,
+                    "total_branch_lengths": total_branch_length_nm,
                     "grain_width_mean": disorderedTrace.calculate_dna_width(
-                        disordered_trace_images["smoothed_grain"],
+                        disordered_trace_images["smoothed_mask"],
                         disordered_trace_images["pruned_skeleton"],
-                        pixel_to_nm_scaling,
+                        grain_crop.pixel_to_nm_scaling,
                     )
                     * 1e-9,
                 }
-            # remap the cropped images back onto the original
-            for image_name, full_image in all_images.items():
-                crop = disordered_trace_images[image_name]
-                bbox = bboxs[cropped_image_index]
-                full_image[bbox[0] : bbox[2], bbox[1] : bbox[3]] += crop[pad_width:-pad_width, pad_width:-pad_width]
-            disordered_trace_crop_data[f"grain_{cropped_image_index}"] = disordered_trace_images
-            disordered_trace_crop_data[f"grain_{cropped_image_index}"]["bbox"] = bboxs[cropped_image_index]
-            disordered_trace_crop_data[f"grain_{cropped_image_index}"]["pad_width"] = pad_width
+                # Instantiate a DisorderedTrace object, setting its attributes and add to the GrainCrop.disordered_trace
+                # attribute in the right direction
+                topostats_object.grain_crops[grain_number].disordered_trace = DisorderedTrace(
+                    images=disordered_trace_images,
+                    grain_endpoints=np.int64((conv_pruned_skeleton == 2).sum()),
+                    grain_junctions=np.int64((conv_pruned_skeleton == 3).sum()),
+                    total_branch_length=total_branch_length_nm,
+                    grain_width_mean=disorderedTrace.calculate_dna_width(
+                        disordered_trace_images["smoothed_mask"],
+                        disordered_trace_images["pruned_skeleton"],
+                        grain_crop.pixel_to_nm_scaling,
+                    )
+                    * 1e-9,
+                )
+                # Extract disordered tracing statistics using skan
+                # ns-rse 2025-12-22 : feels crude to pull things out of skan_df to build a dictionary which we
+                # ultimately convert back to pd.DataFrame later, should really augment skan_df with additional metrics
+                topostats_object.grain_crops[grain_number].disordered_trace.stats = {}
+                for index, _ in enumerate(skan_df.iterrows()):
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index] = {}
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["image"] = filename
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index][
+                        "branch_distance"
+                    ] = skan_skeleton.path_lengths()[index]
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["branch_type"] = np.int64(
+                        skan_df["branch_type"]
+                    )[index]
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["connected_segments"] = (
+                        skan_df.apply(find_connections, axis=1, skan_df=skan_df)[index]
+                    )
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index][
+                        "mean_pixel_value"
+                    ] = skan_skeleton.path_means()[index]
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index][
+                        "stdev_pixel_value"
+                    ] = skan_skeleton.path_stdev()[index]
+                    # pylint: disable=cell-var-from-loop
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["min_value"] = (
+                        skan_df.apply(
+                            lambda x: segment_heights(x, skan_skeleton=skan_skeleton, image=grain_crop.image).min(),
+                            axis=1,
+                        )[index]
+                    )
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["median_value"] = (
+                        skan_df.apply(
+                            lambda x: np.median(
+                                segment_heights(x, skan_skeleton=skan_skeleton, image=grain_crop.image)
+                            ),
+                            axis=1,
+                        )[index]
+                    )
+                    # pylint: enable=cell-var-from-loop
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["middle_value"] = (
+                        skan_df.apply(segment_middles, skan_skeleton=skan_skeleton, image=grain_crop.image, axis=1)[
+                            index
+                        ]
+                    )
+                    topostats_object.grain_crops[grain_number].disordered_trace.stats[index]["basename"] = str(
+                        topostats_object.img_path
+                    )
+                # remap the cropped images back onto the original, there are many image crops that we want to
+                #  remap back onto the original image so we iterate over them, as passed by the function
+                for image_name, full_diagnostic_image in all_images.items():
+                    crop = disordered_trace_images[image_name]
+                    bbox = grain_crop.bbox
+                    full_diagnostic_image[bbox[0] : bbox[2], bbox[1] : bbox[3]] += crop
+                disordered_trace_crop_data[f"grain_{grain_number}"] = disordered_trace_images
+                disordered_trace_crop_data[f"grain_{grain_number}"]["bbox"] = grain_crop.bbox
+                disordered_trace_crop_data[f"grain_{grain_number}"]["pad_width"] = grain_crop.padding
+            else:
+                # Not sure why this is required as the GrainCrop definition sets these to None by default but I
+                # encountered errors complaining about the attribute note being set and this seems to solve that.
+                topostats_object.grain_crops[grain_number].disordered_trace = None
+            # Ensure topostats_object.full_image_plots is a dictionary so we can append full image plots, this will
+            # _always_ overwrite what is there so if disordered tracing is being re-run the old images are lost from the
+            # .topostats object.
+            topostats_object.full_image_plots = all_images
 
-        # when skel too small, pruned to 0's, skan -> ValueError -> skipped
+        # when skeleton is too small, pruned to 0's, skan -> ValueError -> skipped
         except Exception as e:  # pylint: disable=broad-exception-caught
             LOGGER.error(  # pylint: disable=logging-not-lazy
-                f"[{filename}] : Disordered tracing of grain "
-                f"{cropped_image_index} failed. Consider raising an issue on GitHub. Error: ",
+                f"[{grain_crop.filename}] : Disordered tracing of grain {grain_number} failed. "
+                f"Consider raising an issue on GitHub. Error: ",
                 exc_info=e,
             )
 
         # convert stats dict to dataframe
         grainstats_additions_df = pd.DataFrame.from_dict(grainstats_additions, orient="index")
-
-    return disordered_trace_crop_data, grainstats_additions_df, all_images, disordered_tracing_stats
-
-
-def compile_skan_stats(
-    skan_df: pd.DataFrame, skan_skeleton: skan.Skeleton, image: npt.NDArray, filename: str, grain_number: int
-) -> pd.DataFrame:
-    """
-    Obtain and add more stats to the resultant Skan dataframe.
-
-    Parameters
-    ----------
-    skan_df : pd.DataFrame
-        The statistics DataFrame produced by Skan's `summarize` function.
-    skan_skeleton : skan.Skeleton
-        The graphical representation of the skeleton produced by Skan.
-    image : npt.NDArray
-        The image the skeleton was produced from.
-    filename : str
-        Name of the file being processed.
-    grain_number : int
-        The number of the grain being processed.
-
-    Returns
-    -------
-    pd.DataFrame
-        A dataframe containing the filename, grain_number, branch-distance, branch-type, connected_segments,
-        mean-pixel-value, stdev-pixel-value, min-value, median-value, and mid-value.
-    """
-    skan_df["image"] = filename
-    skan_df["branch-type"] = np.int64(skan_df["branch_type"])
-    skan_df["grain_number"] = grain_number
-    skan_df["connected_segments"] = skan_df.apply(find_connections, axis=1, skan_df=skan_df)
-    skan_df["min_value"] = skan_df.apply(lambda x: segment_heights(x, skan_skeleton, image).min(), axis=1)
-    skan_df["median_value"] = skan_df.apply(lambda x: np.median(segment_heights(x, skan_skeleton, image)), axis=1)
-    skan_df["middle_value"] = skan_df.apply(segment_middles, skan_skeleton=skan_skeleton, image=image, axis=1)
-    # remove unused skan columns
-    return skan_df[
-        [
-            "image",
-            "grain_number",
-            "branch_distance",
-            "branch_type",
-            "connected_segments",
-            "mean_pixel_value",
-            "stdev_pixel_value",
-            "min_value",
-            "median_value",
-            "middle_value",
-        ]
-    ]
+        # Set the name of the index column to be the grain number
+        grainstats_additions_df.index.name = "grain_number"
 
 
 def segment_heights(row: pd.Series, skan_skeleton: skan.Skeleton, image: npt.NDArray) -> npt.NDArray:
@@ -559,52 +579,6 @@ def find_connections(row: pd.Series, skan_df: pd.DataFrame) -> str:
     # Remove the index of the current row itself from the list of connections
     connections.remove(row.name)
     return str(connections)
-
-
-def prep_arrays(
-    image: npt.NDArray, labelled_grains_mask: npt.NDArray, pad_width: int
-) -> tuple[dict[int, npt.NDArray], dict[int, npt.NDArray]]:
-    """
-    Take an image and labelled mask and crops individual grains and original heights to a list.
-
-    A second padding is made after cropping to ensure for "edge cases" where grains are close to bounding box edges that
-    they are traced correctly. This is accounted for when aligning traces to the whole image mask.
-
-    Parameters
-    ----------
-    image : npt.NDArray
-        Gaussian filtered image. Typically filtered_image.images["gaussian_filtered"].
-    labelled_grains_mask : npt.NDArray
-        2D Numpy array of labelled grain masks, with each mask being comprised solely of unique integer (not
-        zero). Typically this will be output from 'grains.directions[<direction>["labelled_region_02]'.
-    pad_width : int
-        Cells by which to pad cropped regions by.
-
-    Returns
-    -------
-    Tuple
-        Returns a tuple of three dictionaries, the cropped images, cropped masks and bounding boxes.
-    """
-    # Get bounding boxes for each grain
-    region_properties = skimage_measure.regionprops(labelled_grains_mask)
-    # Subset image and grains then zip them up
-    cropped_images = {}
-    cropped_masks = {}
-
-    # for index, grain in enumerate(region_properties):
-    #    cropped_image, cropped_bbox = crop_array(image, grain.bbox, pad_width)
-
-    cropped_images = {index: crop_array(image, grain.bbox, pad_width) for index, grain in enumerate(region_properties)}
-    cropped_images = {index: np.pad(grain, pad_width=pad_width) for index, grain in cropped_images.items()}
-    cropped_masks = {
-        index: crop_array(labelled_grains_mask, grain.bbox, pad_width) for index, grain in enumerate(region_properties)
-    }
-    cropped_masks = {index: np.pad(grain, pad_width=pad_width) for index, grain in cropped_masks.items()}
-    cropped_masks = {index: np.where(grain == (index + 1), 1, 0) for index, grain in cropped_masks.items()}
-    # Get BBOX coords to remap crops to images
-    bboxs = [pad_bounding_box(image.shape, list(grain.bbox), pad_width=pad_width) for grain in region_properties]
-
-    return (cropped_images, cropped_masks, bboxs)
 
 
 def grain_anchor(array_shape: tuple, bounding_box: list, pad_width: int) -> list:
@@ -697,9 +671,9 @@ def disordered_trace_grain(  # pylint: disable=too-many-arguments
         return None
 
     return {
-        "original_image": cropped_image,
-        "original_grain": cropped_mask,
-        "smoothed_grain": disorderedtrace.smoothed_mask,
+        "image": cropped_image,
+        "grain": cropped_mask,
+        "smoothed_mask": disorderedtrace.smoothed_mask,
         "skeleton": disorderedtrace.skeleton,
         "pruned_skeleton": disorderedtrace.pruned_skeleton,
         "branch_types": get_skan_image(cropped_image, disorderedtrace.pruned_skeleton, "branch_type"),
@@ -810,11 +784,12 @@ def pad_bounding_box(array_shape: tuple, bounding_box: list, pad_width: int) -> 
 #              entry-points/workflow. Will require that the gaussian filtered array is saved and passed in along with
 #              the labelled regions. @ns-rse
 #
+# 2025-02-04 - @sylviawhittle - removed prep_arrays due to GrainCrop refactor. This code would need updating.
 #
 # if __name__ == "__main__":
 #     cropped_images, cropped_masks = prep_arrays(image, grains_mask, pad_width)
 #     n_grains = len(cropped_images)
-#     LOGGER.info(f"[{filename}] : Calculating statistics for {n_grains} grains.")
+#     LOGGER.info(f"[{grain_crop.filename}] : Calculating statistics for {n_grains} grains.")
 #     # Process in parallel
 #     with Pool(processes=cores) as pool:
 #         results = {}
