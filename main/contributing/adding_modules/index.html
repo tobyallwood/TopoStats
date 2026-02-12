@@ -1362,7 +1362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api.config.md" class="md-nav__link">
+      <a href="../../api/config/" class="md-nav__link">
         
   
   
@@ -1566,6 +1566,34 @@
     
   
     PlottingFuncs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing
   
 
     
@@ -2076,7 +2104,7 @@ the first argument and the remaining configuration options. These will typically
 <code>default_config.yaml</code> where the configuration options use the <em>exact</em> same names as the arguments of the function you
 defined your <code>topostats/processing.py</code>. As mentioned above keeping configuration names consistent between configuration
 files and functions means <a href="https://realpython.com/python-kwargs-and-args/"><code>**kwargs</code></a> can be used when passing options to functions.</p>
-<p>Continuing with our example let's look at the [<code>topostats.processing.run_filters()</code>][topostats_entry_point_filters]
+<p>Continuing with our example let's look at the <a href="https://github.com/AFM-SPM/TopoStats/blob/c769ca3cfd32bf37ab3a158cf032b80fa5bcf51a/topostats/entry_point.py#L597"><code>topostats.processing.run_filters()</code></a>
 function.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">run_filters</span><span class="p">(</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">unprocessed_image</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">,</span>
