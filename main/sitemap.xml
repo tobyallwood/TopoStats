@@ -25,7 +25,15 @@
          <lastmod>2026-02-17</lastmod>
     </url>
     <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/advanced/classes/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
          <loc>https://AFM-SPM.github.io/TopoStats/main/advanced/disordered_tracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/advanced/extending/</loc>
          <lastmod>2026-02-17</lastmod>
     </url>
     <url>
@@ -130,6 +138,66 @@
     </url>
     <url>
          <loc>https://AFM-SPM.github.io/TopoStats/main/api/validation/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/logs/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/logs/logs/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/measure/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/measure/curvature/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/measure/feret/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/measure/geometry/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/measure/height_profiles/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/disordered_tracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/nodestats/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/ordered_tracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/pruning/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/skeletonize/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/splining/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/main/api/tracing/tracingfuncs/</loc>
          <lastmod>2026-02-17</lastmod>
     </url>
     <url>
