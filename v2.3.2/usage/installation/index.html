@@ -8,9 +8,13 @@
       
       
       
-        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.3.2/advanced/extending/">
+        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.3.2/usage/installation/">
       
       
+        <link rel="prev" href="../../introduction/">
+      
+      
+        <link rel="next" href="../">
       
       
         
@@ -21,7 +25,7 @@
     
     
       
-        <title>Extending - TopoStats</title>
+        <title>Installation - TopoStats</title>
       
     
     
@@ -74,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#extending" class="md-skip">
+        <a href="#installation" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Extending
+              Installation
             
           </span>
         </div>
@@ -260,7 +264,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../index.md" class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -311,18 +315,20 @@
       
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -343,7 +349,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -358,17 +364,203 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../usage/installation.md" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-conda" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting up Conda
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-topostats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing TopoStats
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installing TopoStats">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pypi-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PyPI Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installing from GitHub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github-using-pypi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub using PyPI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-the-repository-and-installing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning the Repository and installing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-using-gitkraken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning Using GitKraken
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
   
 
     
@@ -389,14 +581,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/index.md" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Configuration
   
 
     
@@ -417,14 +609,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/configuration.md" class="md-nav__link">
+      <a href="../notebooks/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Notebooks
   
 
     
@@ -445,14 +637,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/notebooks.md" class="md-nav__link">
+      <a href="../matplotlib-style/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Matplotlib Style
   
 
     
@@ -473,14 +665,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/matplotlib-style.md" class="md-nav__link">
+      <a href="../data_dictionary/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Data Dictionary
   
 
     
@@ -501,42 +693,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/data_dictionary.md" class="md-nav__link">
+      <a href="../workflow/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../usage/workflow.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    None
+    Workflow
   
 
     
@@ -692,14 +856,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/index.md" class="md-nav__link">
+      <a href="../../contributing/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Contributing
   
 
     
@@ -727,7 +891,7 @@
   <span class="md-ellipsis">
     
   
-    How to add modules
+    Adding Modules
   
 
     
@@ -802,14 +966,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../index.md" class="md-nav__link">
+      <a href="../../advanced/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    Overview
   
 
     
@@ -830,7 +994,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../flattening/" class="md-nav__link">
+      <a href="../../advanced/flattening/" class="md-nav__link">
         
   
   
@@ -858,7 +1022,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../grain_finding/" class="md-nav__link">
+      <a href="../../advanced/grain_finding/" class="md-nav__link">
         
   
   
@@ -886,7 +1050,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../thresholding/" class="md-nav__link">
+      <a href="../../advanced/thresholding/" class="md-nav__link">
         
   
   
@@ -914,7 +1078,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../grainstats/" class="md-nav__link">
+      <a href="../../advanced/grainstats/" class="md-nav__link">
         
   
   
@@ -942,7 +1106,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../disordered_tracing/" class="md-nav__link">
+      <a href="../../advanced/disordered_tracing/" class="md-nav__link">
         
   
   
@@ -970,7 +1134,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../nodestats/" class="md-nav__link">
+      <a href="../../advanced/nodestats/" class="md-nav__link">
         
   
   
@@ -998,7 +1162,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ordered_tracing/" class="md-nav__link">
+      <a href="../../advanced/ordered_tracing/" class="md-nav__link">
         
   
   
@@ -1026,7 +1190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../splining/" class="md-nav__link">
+      <a href="../../advanced/splining/" class="md-nav__link">
         
   
   
@@ -1108,14 +1272,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/index.md" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    None
+    API
   
 
     
@@ -1136,7 +1300,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/array_manipulation.md" class="md-nav__link">
+      <a href="../../api/array_manipulation/" class="md-nav__link">
         
   
   
@@ -1164,35 +1328,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/classes.md" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Classes
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/config.md" class="md-nav__link">
+      <a href="../../api/config/" class="md-nav__link">
         
   
   
@@ -1220,7 +1356,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/entry_point.md" class="md-nav__link">
+      <a href="../../api/entry_point/" class="md-nav__link">
         
   
   
@@ -1248,7 +1384,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/filters.md" class="md-nav__link">
+      <a href="../../api/filters/" class="md-nav__link">
         
   
   
@@ -1276,7 +1412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/grains.md" class="md-nav__link">
+      <a href="../../api/grains/" class="md-nav__link">
         
   
   
@@ -1304,7 +1440,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/grainstats.md" class="md-nav__link">
+      <a href="../../api/grainstats/" class="md-nav__link">
         
   
   
@@ -1332,7 +1468,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/io.md" class="md-nav__link">
+      <a href="../../api/io/" class="md-nav__link">
         
   
   
@@ -1360,7 +1496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/plotting.md" class="md-nav__link">
+      <a href="../../api/plotting/" class="md-nav__link">
         
   
   
@@ -1388,7 +1524,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/plottingfuncs.md" class="md-nav__link">
+      <a href="../../api/plottingfuncs/" class="md-nav__link">
         
   
   
@@ -1416,7 +1552,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/processing.md" class="md-nav__link">
+      <a href="../../api/processing/" class="md-nav__link">
         
   
   
@@ -1444,7 +1580,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/run_modules.md" class="md-nav__link">
+      <a href="../../api/run_modules/" class="md-nav__link">
         
   
   
@@ -1472,7 +1608,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/scars.md" class="md-nav__link">
+      <a href="../../api/scars/" class="md-nav__link">
         
   
   
@@ -1500,7 +1636,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/statistics.md" class="md-nav__link">
+      <a href="../../api/statistics/" class="md-nav__link">
         
   
   
@@ -1528,7 +1664,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/theme.md" class="md-nav__link">
+      <a href="../../api/theme/" class="md-nav__link">
         
   
   
@@ -1556,7 +1692,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/thresholds.md" class="md-nav__link">
+      <a href="../../api/thresholds/" class="md-nav__link">
         
   
   
@@ -1584,7 +1720,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/utils.md" class="md-nav__link">
+      <a href="../../api/utils/" class="md-nav__link">
         
   
   
@@ -1612,7 +1748,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/validation.md" class="md-nav__link">
+      <a href="../../api/validation/" class="md-nav__link">
         
   
   
@@ -1667,10 +1803,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#core-features" class="md-nav__link">
+  <a href="#setting-up-conda" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core Features
+        Setting up Conda
       
     </span>
   </a>
@@ -1678,22 +1814,67 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#entry-points" class="md-nav__link">
+  <a href="#installing-topostats" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Entry Points
+        Installing TopoStats
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Entry Points">
+    <nav class="md-nav" aria-label="Installing TopoStats">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#custom-configuration" class="md-nav__link">
+  <a href="#pypi-installation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Configuration
+        PyPI Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installing from GitHub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installing-from-github-using-pypi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing from GitHub using PyPI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-the-repository-and-installing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning the Repository and installing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cloning-using-gitkraken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cloning Using GitKraken
       
     </span>
   </a>
@@ -1702,6 +1883,33 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1725,36 +1933,115 @@
   
 
 
-<h1 id="extending">Extending</h1>
-<hr>
-
-<p><strong>NB</strong> The way in which TopoStats can be extended is very much a work in-progress. This page is an attempt to document
-and keep up-to-date the process of doing so but is subject to change and may be outdated at any given point in time.</p>
-<hr>
-
-<p>TopoStats design is modular with the intention that users can write extensions to carry out different workflows
-contingent on the types of samples being imaged. Here we describe how to add your own module.</p>
-<h2 id="core-features">Core Features</h2>
-<p>All AFM images need to be filtered flattened and optionally have scars removed. This is core functionality carried out
-by the <code>topostats.filters</code> module and will be required by all packages that are developed to extend TopoStats.</p>
-<h2 id="entry-points">Entry Points</h2>
-<p>Primarily TopoStats was designed with batch processing of multiple images in mind and as such it uses the command line
-for invocation and processing of multiple images. To this end you should include entry points in your module. For
-consistency it is recommended that you create a <code>&lt;pkg_path&gt;/entry_point.py</code> which has an argument parser and sub-parsers
-for each of the steps you wish to create. These are added under the <code>project.scripts</code> configuration section of <em>your</em>
-projects <code>pyproject.toml</code>.</p>
-<p>Your parser should include the common options to TopoStats (see the arguments added to <code>parser</code> in
-<code>topostats/entry_point.py</code>) and the <code>filter</code> sub-parser (see the arguments added to <code>parser.filter</code> in <code>topostats/entry_point.py</code>).</p>
-<h3 id="custom-configuration">Custom Configuration</h3>
-<p>TopoStats uses <a href="https://yaml.org">YAML</a> configuration files to specify the options. In the module you develop you should include a
-<code>default_config.yaml</code> and copy the base configuration parameters and <code>filters:</code> section from
-<code>topostats/default_config.yaml</code>.</p>
-<p>You should, for user convenience add a sub-parser to <code>create-config</code> using the example in
-<code>topostats/entry_point.py</code>. This will allow users to run <code>&lt;your_package&gt; create-config --config &lt;your_package&gt;</code> and it
-will, by default, write a copy of <code>default_config.yaml</code> to the <code>config.yaml</code> file of the current directory (users can
-modify the output filename with the <code>&lt;your_package&gt; create-config --filename my_cutsom_config.yaml</code> should they wish
-to). You shouldn't have to do anything else, TopoStats will look for the <code>default_config.yaml</code> in your package and write
-that to disk.</p>
+<h1 id="installation">Installation</h1>
+<p><strong>NB</strong> - If you have trouble installing TopoStats please do checkout the
+<a href="https://github.com/AFM-SPM/TopoStats/discussions">discussion</a> for possible solutions. If your problem isn't covered
+then please do not hesitate to ask a question.</p>
+<p>TopoStats is a <a href="https://www.python.org">Python</a> package designed to run at the command line. If you are using Microsoft
+Windows you should use
+<a href="https://learn.microsoft.com/en-us/powershell/scripting/learn/ps101/01-getting-started?view=powershell-7.3">Powershell</a>.
+You may have Python installed on your system but should use a <a href="https://realpython.com/python-virtual-environments-a-primer/">Python Virtual
+Environment</a> such as
+<a href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a> and install and use TopoStats under the Virtual
+Environment. The versions of Python supported are Python &gt;=3.8 and so when creating your virtual environment you should
+specify this <code>3.8</code> as the minimum.</p>
+<h2 id="setting-up-conda">Setting up Conda</h2>
+<p>Once you have downloaded and installed <a href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a> you can create a
+virtual environment for installing TopoStats for installing and running TopoStats. We will call this environment <code>topostats</code>
+(specified with the <code>--name topostats</code> option) and use Python 3.10 (the option <code>python=3.10</code>). After creating it we can,
+as per the instructions printed out, activate the environment.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>conda<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>topostats<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>You are now ready to install TopoStats.</p>
+<p><strong>NB</strong> If you are using an Apple M1 Macbook then you need to install Anaconda &gt;=
+<a href="https://www.anaconda.com/blog/new-release-anaconda-distribution-now-supporting-m1">2022.05</a>.</p>
+<h2 id="installing-topostats">Installing TopoStats</h2>
+<p>There are two options for installing TopoStats depending on your usage</p>
+<ol>
+<li><a href="https://pypi.org/"><strong>Python Package Index</strong></a> - appropriate if you are just using TopoStats and don't need to dig into
+   the code.</li>
+<li>Cloning the GitHub Repository - if you want to look at the code, contribute to it, debug errors or perhaps test a new
+   feature before a release.</li>
+</ol>
+<h3 id="pypi-installation">PyPI Installation</h3>
+<p>After activating your <code>topostats</code> Conda environment you can install TopoStats from PyPI using the following command.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>This will install TopoStats under your virtual environment and the command <code>topostats</code> will be available at the
+command line. It has a number of sub-commands which can be displayed by invoking it without any options. You can upgrade
+<code>topostats</code> by using the <code>--upgrade</code> flag...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>topostats
+</span></code></pre></div>
+<p>You can always install a specific version from PyPI</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">topostats</span><span class="o">==</span><span class="m">2</span>.0.0
+</span></code></pre></div>
+<p>For more information on using <code>pip</code> to install and manage packages please refer to the <a href="https://pip.pypa.io/en/stable/user_guide/">pip
+documentation</a>.</p>
+<h3 id="installing-from-github">Installing from GitHub</h3>
+<p>You may wish to consider cloning and installing TopoStats from GitHub if...</p>
+<ul>
+<li>You wish to try out new features that have been developed since the last release (if you find problems please create
+  an <a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a>).</li>
+<li>If you have found an issue in a released version and want to see if it has been fixed in the unreleased version.</li>
+<li>If you wish to develop and extend TopoStats with new features yourself.</li>
+</ul>
+<p>There are two options to install from GitHub, which you use will depend on what you want to do.</p>
+<ol>
+<li>Using PyPI to install directly.</li>
+<li>Clone the repository and install from there.</li>
+</ol>
+<p>If all you want to do is use the development version of TopoStats then you can use option 1. If you wish to change the
+underlying code you should use option 2.</p>
+<h4 id="installing-from-github-using-pypi">Installing from GitHub using PyPI</h4>
+<p><a href="https://pypi.org/project/pip/"><code>pip</code></a> supports <a href="https://pip.pypa.io/en/stable/getting-started/#install-a-package-from-github">installing packages from GitHub</a>. To install the <code>main</code> branch of TopoStats use the
+following in your Virtual Environment.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/AFM-SPM/TopoStats.git@main
+</span></code></pre></div>
+<p>You can install any branch on GitHub by modifying the last argument (<code>@main</code>) to the branch you wish to install,
+e.g. <code>@another_branch</code> would install the <code>another_branch</code> (if it existed).</p>
+<h4 id="cloning-the-repository-and-installing">Cloning the Repository and installing</h4>
+<p>If you do not have Git already installed please see <a href="https://github.com/git-guides/install-git">Git Installation</a>. If
+you intend to contribute to the development of TopoStats please read through the
+<a href="../../contributing/">contributing</a> section.
+If you are familiar with the command line then you can clone and install TopoStats with the following <em>after</em> activating
+your virtual environment. By installing in editable mode (with the <code>-e</code> flag) switching branches will make the branch
+available.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>~/where/to/clone
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:AFM-SPM/TopoStats.git
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nb">cd</span><span class="w"> </span>TopoStats
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</span></code></pre></div>
+<p>If you plan to contribute to development by adding features or address an existing
+<a href="https://github.com/AFM-SPM/TopoStats/issues">issue</a> please refer to the <a href="../../contributing/">contributing</a>
+section and pay particular attention to the section about installing additional dependencies.</p>
+<p>We include <a href="../notebooks/">notebooks</a> which show how to use different aspects of TopoStats. If you wish to try these out the
+<a href="https://jupyter.org/">Jupyter Noteooks</a> then you can install the dependencies that are required from the cloned
+TopoStats repository using...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[notebooks]&quot;</span>
+</span></code></pre></div>
+<h4 id="cloning-using-gitkraken">Cloning Using GitKraken</h4>
+<p>If you are using GitKraken you can clone the repository by selecting "Clone" and then "GitHub.com" and typing
+<code>TopoStats</code> into the box next to "Repository to Clone" and you should be presented with the option of selecting
+"TopoStats" from the AFM-SPM organisation. Once cloned follow the above instructions to install with <code>pip</code> under your
+virtual environment.</p>
+<h2 id="tests">Tests</h2>
+<p>One of the major changes in the refactoring is the introduction of unit tests. These require certain packages to be
+installed which are not installed to your virtual environment by
+<a href="https://setuptools.pypa.io/en/latest/setuptools.html">setuptools</a> in the above steps. If you are intending to modify or
+contribute to the development of TopoStats or make changes to the code base you will likely want to be able to run
+the tests. Install the necessary dependencies to do so with...</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>TopoStats
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>git<span class="w"> </span>checkout<span class="w"> </span>dev
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;.[tests]&quot;</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>pytest
+</span></code></pre></div>
+<h2 id="git">Git</h2>
+<p><a href="https://git.vc">Git</a> is a version control system for managing software development and is required to be installed on
+your computer in order to clone the TopoStats repository. Instructions on installing Git can be found at <a href="https://github.com/git-guides/install-git">Git Guides -
+install git</a>.</p>
+<p>A nice Graphical User Interface for working with Git is <a href="https://www.gitkraken.com/">GitKraken</a> which includes
+everything you need.</p>
 
 
 
