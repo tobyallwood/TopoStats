@@ -8,31 +8,31 @@
       
       
       
-        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.1.1/advanced/splining/">
+        <link rel="canonical" href="https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/skeletonize/">
       
       
-        <link rel="prev" href="../ordered_tracing/">
+        <link rel="prev" href="../dnatracing/">
       
       
-        <link rel="next" href="../../api/">
+        <link rel="next" href="../tracingfuncs/">
       
       
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
     
     
       
-        <title>Splining - TopoStats</title>
+        <title>Skeletonize - TopoStats</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,9 +51,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#splining" class="md-skip">
+        <a href="#skeletonize-modules" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="TopoStats" class="md-header__button md-logo" aria-label="TopoStats" data-md-component="logo">
+    <a href="../../.." title="TopoStats" class="md-header__button md-logo" aria-label="TopoStats" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Splining
+              Skeletonize
             
           </span>
         </div>
@@ -234,7 +234,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="TopoStats" class="md-nav__button md-logo" aria-label="TopoStats" data-md-component="logo">
+    <a href="../../.." title="TopoStats" class="md-nav__button md-logo" aria-label="TopoStats" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -264,7 +264,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -291,7 +291,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/" class="md-nav__link">
+      <a href="../../../introduction/" class="md-nav__link">
         
   
   
@@ -365,7 +365,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/installation/" class="md-nav__link">
+      <a href="../../../usage/installation/" class="md-nav__link">
         
   
   
@@ -393,7 +393,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/" class="md-nav__link">
+      <a href="../../../usage/" class="md-nav__link">
         
   
   
@@ -421,7 +421,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/configuration/" class="md-nav__link">
+      <a href="../../../usage/configuration/" class="md-nav__link">
         
   
   
@@ -449,7 +449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/notebooks/" class="md-nav__link">
+      <a href="../../../usage/notebooks/" class="md-nav__link">
         
   
   
@@ -477,7 +477,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/matplotlib-style/" class="md-nav__link">
+      <a href="../../../usage/matplotlib-style/" class="md-nav__link">
         
   
   
@@ -505,7 +505,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/data_dictionary/" class="md-nav__link">
+      <a href="../../../usage/data_dictionary/" class="md-nav__link">
         
   
   
@@ -533,7 +533,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/workflow/" class="md-nav__link">
+      <a href="../../../usage/workflow/" class="md-nav__link">
         
   
   
@@ -568,7 +568,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../related_software/" class="md-nav__link">
+      <a href="../../../related_software/" class="md-nav__link">
         
   
   
@@ -595,7 +595,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../glossary/" class="md-nav__link">
+      <a href="../../../glossary/" class="md-nav__link">
         
   
   
@@ -622,7 +622,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../faq/" class="md-nav__link">
+      <a href="../../../faq/" class="md-nav__link">
         
   
   
@@ -696,7 +696,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
+      <a href="../../../contributing/" class="md-nav__link">
         
   
   
@@ -724,7 +724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/adding_modules/" class="md-nav__link">
+      <a href="../../../contributing/adding_modules/" class="md-nav__link">
         
   
   
@@ -732,6 +732,312 @@
     
   
     Adding Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Advanced Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/flattening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flattening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/grain_finding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grain finding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/thresholding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Thresholding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/grainstats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Grainstats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/disordered_tracing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Disordered Tracing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/nodestats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NodeStats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/ordered_tracing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ordered Tracing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../advanced/splining/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splining
   
 
     
@@ -769,488 +1075,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Advanced Documentation
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Advanced Documentation
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../flattening/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Flattening
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../grain_finding/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Grain finding
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../thresholding/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Thresholding
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../grainstats/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Grainstats
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../disordered_tracing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Disordered Tracing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../nodestats/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    NodeStats
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ordered_tracing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Ordered Tracing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Splining
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Splining
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#at-a-glance-smoothing-pixelated-traces" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        At a Glance : Smoothing Pixelated Traces
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#processing-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Processing Steps
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Processing Steps">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#splining-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Splining Method
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Splining Method">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-trace-coordinate-subsets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Trace Coordinate Subsets
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-obtaining-splines" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Obtaining Splines
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rolling-window-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Rolling Window Method
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Rolling Window Method">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-rolling-average" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Rolling Average
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#outputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Outputs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#diagnostic-images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Diagnostic Images
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#possible-uses" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Possible Uses
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
           <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
@@ -1271,7 +1096,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1289,7 +1114,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/" class="md-nav__link">
+      <a href="../../" class="md-nav__link">
         
   
   
@@ -1317,7 +1142,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/entry_point/" class="md-nav__link">
+      <a href="../../entry_point/" class="md-nav__link">
         
   
   
@@ -1345,7 +1170,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/filters/" class="md-nav__link">
+      <a href="../../filters/" class="md-nav__link">
         
   
   
@@ -1373,7 +1198,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/grains/" class="md-nav__link">
+      <a href="../../grains/" class="md-nav__link">
         
   
   
@@ -1401,7 +1226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/grainstats/" class="md-nav__link">
+      <a href="../../grainstats/" class="md-nav__link">
         
   
   
@@ -1429,7 +1254,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/io/" class="md-nav__link">
+      <a href="../../io/" class="md-nav__link">
         
   
   
@@ -1504,7 +1329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/logs/" class="md-nav__link">
+      <a href="../../logs/" class="md-nav__link">
         
   
   
@@ -1532,7 +1357,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/logs/logs/" class="md-nav__link">
+      <a href="../../logs/logs/" class="md-nav__link">
         
   
   
@@ -1568,7 +1393,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/plotting/" class="md-nav__link">
+      <a href="../../plotting/" class="md-nav__link">
         
   
   
@@ -1596,7 +1421,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/plottingfuncs/" class="md-nav__link">
+      <a href="../../plottingfuncs/" class="md-nav__link">
         
   
   
@@ -1624,7 +1449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/processing/" class="md-nav__link">
+      <a href="../../processing/" class="md-nav__link">
         
   
   
@@ -1652,7 +1477,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/run_topostats/" class="md-nav__link">
+      <a href="../../run_topostats/" class="md-nav__link">
         
   
   
@@ -1680,7 +1505,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/scars/" class="md-nav__link">
+      <a href="../../scars/" class="md-nav__link">
         
   
   
@@ -1708,7 +1533,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/statistics/" class="md-nav__link">
+      <a href="../../statistics/" class="md-nav__link">
         
   
   
@@ -1736,7 +1561,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/theme/" class="md-nav__link">
+      <a href="../../theme/" class="md-nav__link">
         
   
   
@@ -1764,7 +1589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/thresholds/" class="md-nav__link">
+      <a href="../../thresholds/" class="md-nav__link">
         
   
   
@@ -1789,18 +1614,20 @@
                 
   
   
+    
   
   
+  
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_16" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_16" checked>
         
           
           <label class="md-nav__link" for="__nav_9_16" id="__nav_9_16_label" tabindex="0">
@@ -1821,7 +1648,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_16_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_16_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_9_16">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1839,7 +1666,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/tracing/" class="md-nav__link">
+      <a href="../" class="md-nav__link">
         
   
   
@@ -1867,7 +1694,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/tracing/dnacurvature/" class="md-nav__link">
+      <a href="../dnacurvature/" class="md-nav__link">
         
   
   
@@ -1895,7 +1722,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/tracing/dnatracing/" class="md-nav__link">
+      <a href="../dnatracing/" class="md-nav__link">
         
   
   
@@ -1920,10 +1747,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../api/tracing/skeletonize/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skeletonize
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1939,6 +1793,48 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#topostats.tracing.skeletonize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        skeletonize
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#topostats.tracing.skeletonize.get_skeleton" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_skeleton
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1951,7 +1847,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/tracing/tracingfuncs/" class="md-nav__link">
+      <a href="../tracingfuncs/" class="md-nav__link">
         
   
   
@@ -1987,7 +1883,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/utils/" class="md-nav__link">
+      <a href="../../utils/" class="md-nav__link">
         
   
   
@@ -2015,7 +1911,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/validation/" class="md-nav__link">
+      <a href="../../validation/" class="md-nav__link">
         
   
   
@@ -2070,10 +1966,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#at-a-glance-smoothing-pixelated-traces" class="md-nav__link">
+  <a href="#topostats.tracing.skeletonize" class="md-nav__link">
     <span class="md-ellipsis">
       
-        At a Glance : Smoothing Pixelated Traces
+        skeletonize
       
     </span>
   </a>
@@ -2081,116 +1977,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#processing-steps" class="md-nav__link">
+  <a href="#topostats.tracing.skeletonize.get_skeleton" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Processing Steps
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Processing Steps">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#splining-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Splining Method
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Splining Method">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-trace-coordinate-subsets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Trace Coordinate Subsets
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-obtaining-splines" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Obtaining Splines
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#rolling-window-method" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Rolling Window Method
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Rolling Window Method">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-rolling-average" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Rolling Average
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#outputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Outputs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#diagnostic-images" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Diagnostic Images
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#possible-uses" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Possible Uses
+        get_skeleton
       
     </span>
   </a>
@@ -2217,129 +2007,201 @@
   
 
 
-<h1 id="splining">Splining</h1>
-<p>This section gives an in-depth overview of the steps taken in the splining module.</p>
-<h2 id="at-a-glance-smoothing-pixelated-traces">At a Glance : Smoothing Pixelated Traces</h2>
-<p>The <code>splining.py</code> module handles all the functions associated with smoothing the ordered pixel-wise trace from the
-"ordered_tracing" step, in order to produce curves which more closely follow the samples structure.</p>
-<p>The quality of the resultant metrics and smoothed coordinates will depend on the splining method chosen, whether the
-ordering worked successfully, and whether the skeleton matches the underlying sample conformation.</p>
-<p><img alt="ordered trace to spline" src="../../_static/images/splining/overview.png" /></p>
-<p>This smooths the ordered trace by using an average of splines through the ordered coordinates (<code>spline</code> method) or using
-the mean coordinate of a rolling window (<code>rolling_window</code> method), helping to resolve length errors in jagged in the
-skeletons. It adds the contour length and end-to-end euclidean distance to the <code>all_mol_statistics.csv</code> and the sum and
-average of these respectively to the <code>all_statistics.csv</code>.</p>
-<p>Some quick FYI's:</p>
-<ul>
-<li><strong>Constricted Traces</strong> - Using the <code>rolling_window</code> method with a rolling window size that is not far below the
-  persistence length can result in over-smoothing where the spline is dragged away from regions of high curvature.</li>
-<li><strong>Unrepresentative Splines</strong> - The <code>spline</code> method's parameters can be quite temperamental so it's recommended that
-  <code>spline_linear_smoothing</code>, <code>spline_circular_smoothing</code> and <code>spline_degree</code> are not changed unless understood.</li>
-<li><strong>Unrepresentative Splines 2</strong> - The <code>spline</code> method may produce unwanted results if the <code>spline_step_size</code> is too
-  long. This is because the way the splines are averaged assumes that each spline point is sampled close to that of
-  another's.</li>
-</ul>
-<h2 id="processing-steps">Processing Steps</h2>
-<h3 id="splining-method">Splining Method</h3>
-<h4 id="1-trace-coordinate-subsets">1. Trace Coordinate Subsets</h4>
-<p>The first stage is to use the ordered coordinates and the <code>spline_step_size</code> parameter to define how many splines we
-want to average together. As the <code>spline_step_size</code> is the distance (in nm) at which to take every i'th coordinate for
-its spline. This means the number of splines to average is calculated below:</p>
-<div class="arithmatex">\[ N = max(\text{spline step size} \div \text{px to nm}, 1) \]</div>
-<p>The coordinates used for each spline are then obtained from the initial ordered trace, i.e. the spline coordinate
-indexes: [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4], where spline 1 takes every 4th coordinate, starting at position 0, then
-spline 2 takes every 4th coordinate starting at position 1, etc.</p>
-<p><img alt="multiple ordered coordinates" src="../../_static/images/splining/spl_multi.png" /></p>
-<h4 id="2-obtaining-splines">2. Obtaining Splines</h4>
-<p>For each of these coordinate subsets, we use the
-<a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.splprep.html#scipy.interpolate.splprep">Sci-Py</a>
-library to find the B-Spline representation of the 2D curve using the smoothness parameters <code>spline_linear_smoothing</code>,
-<code>spline_circular_smoothing</code>, and the <code>spline_degree</code>, found in the configuration file. The <code>spline_linear_smoothing</code> and
-<code>spline_circular_smoothing</code> define the degrees of smoothing for circular or linear molecules obtained in the Ordered
-Tracing step, which also tells TopoStats whether to make the spline periodic if circular. Larger smoothing values mean
-more smoothing and smaller values indicate less smoothing. The <code>spline_degree</code> should take odd values, or even with
-large smoothing. Read more on the Sci-Py documentation above.</p>
-<p><img alt="smoothing parameters" src="../../_static/images/splining/spl_smooth.png" /></p>
-<p>These splines are then averaged together via their index i.e. first spline coordinates are averaged, then second
-etc... until a single averaged B-Spline remain. However, because the splined are averaged on their index, it is assumed
-that each index is within close proximity, thus, the <code>spline_step_size</code> must be small enough for this assumption to hold
-true and for the splining to work as intended.</p>
-<h3 id="rolling-window-method">Rolling Window Method</h3>
-<h4 id="1-rolling-average">1. Rolling Average</h4>
-<p>This method simply uses a rolling average of the ordered trace coordinates within the <code>rolling_window_size</code> to produce
-the new smoothed trace. The rolling window will move one coordinate along each time, and continues until the start of
-the window returns back to its initial position.</p>
-<p><img alt="schematic of rolling window averaging" src="../../_static/images/splining/rw_schematic.png" /></p>
-<p>For linear smooth traces, the same as above occurs however, the initial and final coordinates are also added to the
-smoothed trace as to not drastically reduce the length of the smoothed trace.</p>
-<p><img alt="difference between window sizes" src="../../_static/images/splining/rw_sizes.png" /></p>
-<h2 id="outputs">Outputs</h2>
-<p>The <code>&lt;image&gt;_&lt;threshold&gt;_ordered_traces</code> image shows the direction of ordered coordinates.</p>
-<p>For each grain, the following new columns are added to the <code>grainstats.csv</code> file:</p>
-<table>
-<thead>
-<tr>
-<th>Column Name</th>
-<th>Description</th>
-<th>Data Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>total_contour_length</code></td>
-<td>The total length along the splined trace of all identified molecules.</td>
-<td><code>float</code></td>
-</tr>
-<tr>
-<td><code>average_end_to_end_distance</code></td>
-<td>The average distance from two endpoints of the spline of all identified linear molecules.</td>
-<td><code>float</code></td>
-</tr>
-</tbody>
-</table>
-<p>&nbsp;</p>
-<p><img alt="Splined tracing molecule metrics visualisation" src="../../_static/images/splining/ts2_sp_metrics.png" /></p>
-<p>For each molecule found by the ordering algorithm(s), the following new columns are added to the <code>molstats.csv</code> file:</p>
-<table>
-<thead>
-<tr>
-<th>Column Name</th>
-<th>Description</th>
-<th>Data Type</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>contour_length</code></td>
-<td>The length along the splined trace of the molecule.</td>
-<td><code>float</code></td>
-</tr>
-<tr>
-<td><code>end_to_end_distance</code></td>
-<td>The distance from two endpoints of the spline of the linear molecule.</td>
-<td><code>float</code></td>
-</tr>
-</tbody>
-</table>
-<p>&nbsp;</p>
-<p><img alt="Splined tracing molecule metrics visualisation" src="../../_static/images/splining/ts2_metrics-mols_1.png" /></p>
-<p>Note: Most information obtained during the Splining processing can be obtained from the <code>&lt;image_name&gt;.topostats</code> file
-found within the <code>processed</code> folder and contains a multitude of molecule related objects such as:</p>
-<ul>
-<li>bounding box</li>
-<li>spline coordinates</li>
-<li>tracing statistics of contour length and end to end distance</li>
-</ul>
-<p><img alt="TopoStats file - NodeStats structure" src="../../_static/images/splining/topostats_file.png" /></p>
-<h2 id="diagnostic-images">Diagnostic Images</h2>
-<p>There are no diagnostic images produced in this step.</p>
-<h2 id="possible-uses">Possible Uses</h2>
-<p>This module would lend itself useful for accurately measuring the lengths of complex objects within samples, and
-obtaining an accurate representation of the underlying conformation of the sample.</p>
-<p>We have used this module to accurately measure the length of topologically complex DNA samples such as knots, catenanes,
-and theata-curves (replication intermediates). Additionally, we've used the end-to-end distance to measure the
-conformational variation of linear DNA in the presence of NDP-52 to show that it may also play a role in topological
-regulation. <a href="https://www.nature.com/articles/s41467-023-38572-9">See more here.</a>.</p>
+<h1 id="skeletonize-modules">Skeletonize Modules</h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="topostats.tracing.skeletonize"></a>
+    <div class="doc doc-contents first">
+
+        <p>Skeletonize molecules</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="topostats.tracing.skeletonize.get_skeleton" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_skeleton</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Factory method for skeletonizing molecules.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>image</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Image of molecule to be skeletonized.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>method</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Method to use, default is 'zhang' other options are 'lee', and 'thin'.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Skeletonised version of the image.all($0)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>This is a thin wrapper to the methods provided
+by the <code>skimage.morphology
+&lt;https://scikit-image.org/docs/stable/api/skimage.morphology.html?highlight=skeletonize&gt;</code><em>
+module. See also the `examples
+<a href="https://scikit-image.org/docs/stable/auto_examples/edges/plot_skeleton.html">https://scikit-image.org/docs/stable/auto_examples/edges/plot_skeleton.html</a></em></p>
+</details>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>topostats\tracing\skeletonize.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_skeleton</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory method for skeletonizing molecules.</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    Parameters</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    ----------</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    image : np.ndarray</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        Image of molecule to be skeletonized.</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    method : str</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">        Method to use, default is &#39;zhang&#39; other options are &#39;lee&#39;, and &#39;thin&#39;.</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    Returns</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    -------</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    np.ndarray</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        Skeletonised version of the image.all($0)</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    Notes</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    -----</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    This is a thin wrapper to the methods provided</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">    by the `skimage.morphology</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    &lt;https://scikit-image.org/docs/stable/api/skimage.morphology.html?highlight=skeletonize&gt;`_</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    module. See also the `examples</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    &lt;https://scikit-image.org/docs/stable/auto_examples/edges/plot_skeleton.html&gt;_</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>    <span class="n">skeletonizer</span> <span class="o">=</span> <span class="n">_get_skeletonize</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>    <span class="k">return</span> <span class="n">skeletonizer</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
@@ -2389,12 +2251,12 @@ regulation. <a href="https://www.nature.com/articles/s41467-023-38572-9">See mor
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../javascripts/mathjax.js"></script>
+        <script src="../../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

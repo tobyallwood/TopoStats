@@ -121,6 +121,34 @@
          <lastmod>2026-02-17</lastmod>
     </url>
     <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/logs/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/logs/logs/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/dnacurvature/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/dnatracing/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/skeletonize/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
+         <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/api/tracing/tracingfuncs/</loc>
+         <lastmod>2026-02-17</lastmod>
+    </url>
+    <url>
          <loc>https://AFM-SPM.github.io/TopoStats/v2.1.1/contributing/</loc>
          <lastmod>2026-02-17</lastmod>
     </url>
